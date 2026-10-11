@@ -1,0 +1,32 @@
+{
+  "ghiChu": "Danh sách ứng dụng cài bằng winget sau khi cài Windows. id: mã gói winget (kiểm bằng 'winget show --id <id> -e --source winget'). macDinh: true là cài. nhom: các ứng dụng cùng nhóm chỉ cài một (cái đứng trước được ưu tiên). doiThuMuc: bộ cài nhận được thư mục cài riêng (winget --location), chỉ dùng khi sauCai.thuMucCai trong CauHinh.json có giá trị. Đã kiểm mã gói ngày 2026-10-11.",
+  "ungDung": [
+    { "khoa": "Zalo", "id": "VNGCorp.Zalo", "ten": "Zalo", "macDinh": true },
+    { "khoa": "UniKey", "id": "UniKey.UniKey", "ten": "UniKey (bộ gõ tiếng Việt)", "macDinh": true, "nhom": "bo-go" },
+    { "khoa": "EVKey", "id": "lamquangminh.EVKey", "ten": "EVKey (bộ gõ tiếng Việt)", "macDinh": false, "nhom": "bo-go", "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản, tự bật khởi động cùng Windows trong EVKey" },
+    { "khoa": "SevenZip", "id": "7zip.7zip", "ten": "7-Zip (nén, giải nén)", "macDinh": true },
+    { "khoa": "WinRAR", "id": "RARLab.WinRAR", "ten": "WinRAR (bản dùng thử)", "macDinh": false },
+    { "khoa": "Foxit", "id": "Foxit.FoxitReader", "ten": "Foxit PDF Reader", "macDinh": true, "nhom": "doc-pdf" },
+    { "khoa": "AdobeReader", "id": "Adobe.Acrobat.Reader.64-bit", "ten": "Adobe Acrobat Reader", "macDinh": false, "nhom": "doc-pdf" },
+    { "khoa": "UltraViewer", "id": "DucFabulous.UltraViewer", "ten": "UltraViewer (hỗ trợ từ xa)", "macDinh": true, "doiThuMuc": true },
+    { "khoa": "TeamViewer", "id": "TeamViewer.TeamViewer", "ten": "TeamViewer (hỗ trợ từ xa)", "macDinh": false },
+    { "khoa": "Chrome", "id": "Google.Chrome", "ten": "Google Chrome", "macDinh": true },
+    { "khoa": "Brave", "id": "Brave.Brave", "ten": "Brave", "macDinh": false },
+    { "khoa": "Firefox", "id": "Mozilla.Firefox", "ten": "Firefox", "macDinh": false, "doiThuMuc": true },
+    { "khoa": "CocCoc", "id": "CocCoc.CocCoc", "ten": "Cốc Cốc", "macDinh": false, "ghiChu": "bản trên winget cũ, Cốc Cốc tự cập nhật sau khi cài" },
+    { "khoa": "VCRedist", "id": "Microsoft.VCRedist.2015+.x64", "ten": "Microsoft Visual C++ 2015-2022 (x64)", "macDinh": true },
+    { "khoa": "DotNet8", "id": "Microsoft.DotNet.DesktopRuntime.8", "ten": ".NET Desktop Runtime 8", "macDinh": false },
+    { "khoa": "VLC", "id": "VideoLAN.VLC", "ten": "VLC (xem video)", "macDinh": false },
+    { "khoa": "KLite", "id": "CodecGuide.K-LiteCodecPack.Standard", "ten": "K-Lite Codec Pack Standard", "macDinh": false, "doiThuMuc": true },
+    { "khoa": "NotepadPP", "id": "Notepad++.Notepad++", "ten": "Notepad++", "macDinh": false },
+    { "khoa": "LibreOffice", "id": "TheDocumentFoundation.LibreOffice", "ten": "LibreOffice", "macDinh": false },
+    { "khoa": "Telegram", "id": "Telegram.TelegramDesktop", "ten": "Telegram", "macDinh": false },
+    { "khoa": "Discord", "id": "Discord.Discord", "ten": "Discord", "macDinh": false },
+    { "khoa": "OBS", "id": "OBSProject.OBSStudio", "ten": "OBS Studio (quay màn hình)", "macDinh": false, "doiThuMuc": true },
+    { "khoa": "qBittorrent", "id": "qBittorrent.qBittorrent", "ten": "qBittorrent", "macDinh": false, "doiThuMuc": true },
+    { "khoa": "VSCode", "id": "Microsoft.VisualStudioCode", "ten": "Visual Studio Code", "macDinh": false },
+    { "khoa": "Git", "id": "Git.Git", "ten": "Git", "macDinh": false, "doiThuMuc": true },
+    { "khoa": "Python", "id": "Python.Python.3.13", "ten": "Python 3.13", "macDinh": false },
+    { "khoa": "PowerToys", "id": "Microsoft.PowerToys", "ten": "PowerToys", "macDinh": false }
+  ]
+}

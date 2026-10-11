@@ -1,0 +1,102 @@
+{
+  "phienBanCauHinh": 1,
+
+  "ngonNgu": {
+    "giaoDien": "en-US",
+    "dinhDang": "vi-VN",
+    "heThong": "en-US",
+    "banPhim": "0409:00000409",
+    "muiGio": "SE Asia Standard Time",
+    "quocGia": 251
+  },
+
+  "banQuyen": {
+    "cheDo": "bios",
+    "phienBanWindows": "pro"
+  },
+
+  "taiKhoan": {
+    "cheDo": "hoi",
+    "ten": "Admin",
+    "tenHienThi": "",
+    "tuDangNhap": true
+  },
+
+  "tenMay": "*",
+
+  "oDia": {
+    "heThongMB": 300,
+    "dungLuongC_GB": 150,
+    "toiThieuGB": 60
+  },
+
+  "oobe": {
+    "hienWifi": true,
+    "boQuaKiemTraPhanCung": true,
+    "choCaiKhongMang": true
+  },
+
+  "goBo": {
+    "ungDung": [
+      "Clipchamp.Clipchamp",
+      "Microsoft.549981C3F5F10",
+      "Microsoft.BingNews",
+      "Microsoft.BingSearch",
+      "Microsoft.Copilot",
+      "Microsoft.GetHelp",
+      "Microsoft.Getstarted",
+      "Microsoft.MicrosoftOfficeHub",
+      "Microsoft.MicrosoftSolitaireCollection",
+      "Microsoft.MixedReality.Portal",
+      "Microsoft.OutlookForWindows",
+      "Microsoft.People",
+      "Microsoft.PowerAutomateDesktop",
+      "Microsoft.Todos",
+      "Microsoft.Windows.DevHome",
+      "Microsoft.WindowsFeedbackHub",
+      "Microsoft.WindowsMaps",
+      "MicrosoftCorporationII.MicrosoftFamily",
+      "MicrosoftTeams",
+      "MSTeams"
+    ],
+    "capability": [],
+    "tinhNang": [
+      "Recall"
+    ],
+    "oneDrive": true
+  },
+
+  "tinhChinh": {
+    "hienDuoiFile": true,
+    "moThisPC": true,
+    "taskbarTrai": true,
+    "anTaskView": true,
+    "timKiem": "icon",
+    "tatWidgets": true,
+    "tatBingTrongStart": true,
+    "tatGoiYUngDung": true,
+    "tatCopilot": true,
+    "hienEndTask": true,
+    "menuChuotPhaiCu": false,
+    "chanTuMaHoaO": true,
+    "anEdgeLanDau": true,
+    "batDuongDanDai": true
+  },
+
+  "sauCai": {
+    "ungDung": true,
+    "office": true,
+    "driver": true,
+    "capNhatWindows": false,
+    "oDuLieuLaD": true,
+    "choMangPhut": 10,
+    "thuMucCai": "",
+    "tuKhoiDongLai": true
+  },
+
+  "ventoy": {
+    "locTenIso": "(?i)win(dows)?[ ._-]*1[01]",
+    "choChonGiay": 15,
+    "macDinh": 1
+  }
+}

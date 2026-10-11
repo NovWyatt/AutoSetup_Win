@@ -1,0 +1,36 @@
+# =====================================================================
+# AutoSetup_Win - những thứ KHÔNG BAO GIỜ commit
+# =====================================================================
+
+# File unattend đã sinh: có thể chứa mật khẩu tài khoản (chỉ mã hoá base64)
+out/
+
+# Cấu hình riêng từng người dùng (ghi đè CauHinh.json), mật khẩu
+cau-hinh/*.local.json
+*.matkhau.txt
+
+# Kết quả, nhật ký, báo cáo chạy trên máy khách (có tên máy, tên tài khoản)
+ket_qua/
+BaoCao_*.txt
+BaoCao_*.json
+NhatKy_*.log
+
+# Bộ cài Office (file cấu hình có thể có khoá sản phẩm), driver tải về
+office/
+drivers/
+
+# Ảnh đĩa, gói nén
+*.iso
+*.wim
+*.esd
+*.zip
+*.7z
+
+# File tạm, hệ điều hành, trình soạn thảo
+*.tmp
+*.log
+~$*
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
