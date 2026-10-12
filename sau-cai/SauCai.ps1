@@ -200,9 +200,12 @@ function Invoke-StepDriver {
         $w = Invoke-WindowsUpdate -Kind Driver -DryRun:$ChayThu
         $notes += "Windows Update: $($w.GhiChu)"
         if (-not $ChayThu) {
+            $truoc = @($State.driver.daCai).Count
             $State.driver.vong = [int]$State.driver.vong + 1
             $State.driver.daCai = @($State.driver.daCai) + @($w.DaCai)
             $State.driver.loi = @($w.Loi)
+            # Vòng sau khởi động lại chỉ thấy "không còn gì": giữ cho báo cáo biết các vòng trước đã cài bao nhiêu.
+            if ($truoc) { $notes[-1] += " Tổng đã cài qua $($State.driver.vong) vòng: $(@($State.driver.daCai).Count) mục." }
         }
         if ($w.TrangThai -eq 'loi') { $failed = $true }
         # Cài xong có driver mới cần khởi động lại: chạy thêm một vòng sau khi khởi động (tối đa 3 vòng).

@@ -120,7 +120,9 @@ function Get-MachineInfo {
     $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
     $bios = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue
     $lic = @(Get-CimInstance SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1)
-    $licText = @{ 0 = 'chưa có giấy phép'; 1 = 'đã kích hoạt'; 2 = 'ân hạn OOB'; 3 = 'ân hạn OOT'; 4 = 'không chính hãng'; 5 = 'thông báo'; 6 = 'ân hạn mở rộng' }
+    # LicenseStatus: 2 OOB grace, 3 OOT grace (đổi phần cứng), 5 Notification (hết ân hạn, nhắc kích hoạt), 6 ân hạn mở rộng.
+    $licText = @{ 0 = 'chưa có giấy phép'; 1 = 'đã kích hoạt'; 2 = 'chưa kích hoạt (đang trong thời gian ân hạn)'; 3 = 'chưa kích hoạt (ân hạn do đổi phần cứng)'
+        4 = 'không chính hãng'; 5 = 'chưa kích hoạt (Windows nhắc kích hoạt)'; 6 = 'chưa kích hoạt (ân hạn mở rộng)' }
     $vols = @(Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveLetter } | Sort-Object DriveLetter | ForEach-Object {
             [pscustomobject]@{ o = "$($_.DriveLetter):"; nhan = [string]$_.FileSystemLabel; loai = [string]$_.DriveType; dungLuongGB = [math]::Round($_.Size / 1GB, 1); conTrongGB = [math]::Round($_.SizeRemaining / 1GB, 1) } })
     $bl = @()

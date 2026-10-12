@@ -8,7 +8,8 @@ Dùng cho nhiều máy khác nhau (máy văn phòng, máy khách). Mọi lựa c
 trong Windows.
 
 > **Trạng thái:** bộ bài thử giả lập đạt hết (`tests\CHAY_KIEM_THU.bat`). Đã cài trọn lượt trên máy ảo VirtualBox
-> (Windows 11 build 26300): xoá ổ, OOBE, bước sau cài, chặn xoá khi máy có hai ổ; kết quả và các lỗi đã sửa ở
+> (Windows 11 build 26300): xoá ổ, OOBE, bước sau cài, chặn xoá khi máy có hai ổ, chế độ tự động hoàn toàn (tự tạo
+> tài khoản, khởi động lại giữa chừng rồi chạy tiếp); kết quả và các lỗi đã sửa ở
 > [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md). **Chưa thử trên máy thật**: thử một máy trước khi dùng cho máy khách.
 
 ## Làm được gì
@@ -117,6 +118,8 @@ Thử cả lượt cài trên máy ảo VirtualBox (không cần Ventoy, không 
 ## Giới hạn
 
 - Bản xoá ổ chỉ cho máy khởi động UEFI, một ổ trong. Máy khác: dùng mục 1.
+- Lần cài trước bị ngắt giữa chừng (mất điện...) thì ổ còn `C:\$WINDOWS.~BT`: Windows Setup hỏi "It looks like you
+  started an upgrade..." trước khi chạy bất cứ lệnh nào của file unattend. Bấm **No** để cài sạch, phần còn lại tự chạy.
 - Giao diện Windows (`ngonNgu.giaoDien`) phải là ngôn ngữ có trong ISO (ISO tiếng Anh thì để `en-US`).
 - Mật khẩu tài khoản tự tạo (`taiKhoan.cheDo: "tu-dong"`) nằm trong file unattend trên USB dạng base64 (che, không mã
   hoá). Windows xoá bản trên máy ở lần đăng nhập đầu; USB thì giữ cẩn thận.

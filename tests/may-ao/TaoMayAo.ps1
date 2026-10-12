@@ -46,7 +46,9 @@ $cfg = ((V showvminfo $Ten --machinereadable | Where-Object { $_ -like 'CfgFile=
 $vmDir = Split-Path -Parent $cfg
 # Ổ trước, đĩa cài sau: ổ trống thì khởi động đĩa cài; cài xong khởi động thẳng vào Windows.
 # natdnshostresolver: DNS của NAT hay hỏng khi máy thật dùng VPN, Hyper-V; OOBE, winget cần DNS.
+# paravirt none: trên máy thật dùng Hyper-V, paravirt mặc định (Hyper-V) làm Windows trong máy ảo màn hình xanh 0xA.
 V modifyvm $Ten --memory $RamMB --cpus $Cpu --ioapic on --firmware efi --tpm-type 2.0 --graphicscontroller vboxsvga --vram 128 `
+    --paravirt-provider none `
     --nic1 nat --natdnshostresolver1 on --audio-enabled off --usb-ohci off --usb-ehci off --usb-xhci off `
     --boot1 disk --boot2 dvd --boot3 none --boot4 none --clipboard-mode disabled --drag-and-drop disabled | Out-Null
 V modifynvram $Ten inituefivarstore | Out-Null
