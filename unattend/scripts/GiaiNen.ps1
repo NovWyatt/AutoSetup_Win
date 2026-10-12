@@ -1,6 +1,8 @@
 ﻿<#
   Nhúng trong file unattend (thẻ ExtractScript). Bước specialize chạy nó với nội dung C:\Windows\Panther\unattend.xml:
   ghi từng thẻ <File path="..."> trong phần Extensions ra đĩa. Cách làm theo schneegans/unattend-generator (MIT).
+  Thẻ có ma="base64" chứa nội dung UTF-8 dạng base64: Setup đổi chữ ngoài ASCII trong bản Panther thành '?', base64 thì
+  giữ nguyên tiếng Việt trong script. TaoUnattend bỏ chú thích khi nhúng; phần mã phải là ASCII.
 #>
 param([xml]$Document)
 
@@ -14,6 +16,11 @@ foreach ($file in $Document.unattend.Extensions.File) {
         '.vbs' { New-Object Text.UnicodeEncoding $false, $true }
         default { New-Object Text.UTF8Encoding $false }
     }
-    $text = $file.InnerText.Trim() + "`r`n"
+    if ($file.GetAttribute('ma') -eq 'base64') {
+        $text = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.InnerText))
+    } else {
+        $text = $file.InnerText
+    }
+    $text = $text.Trim() + "`r`n"
     [IO.File]::WriteAllBytes($path, [byte[]]($encoding.GetPreamble() + $encoding.GetBytes($text)))
 }

@@ -53,6 +53,10 @@ try {
         Assert-True ($bytes[0] -ne 0xEF) "$n UTF-8 không BOM"
         $lines = [IO.File]::ReadAllLines($f.FullName)
         Assert-True (-not @($lines | Where-Object { ([regex]::Matches($_, '\$\$[A-Za-z0-9_]+\$\$')).Count -gt 1 }).Count) "$n mỗi dòng tối đa một biến Ventoy"
+        # Setup chép file vào Panther và đổi chữ ngoài ASCII thành '?' (thấy khi thử máy ảo 2026-10-12).
+        $nonAscii = @($u.Doc.SelectNodes('//text() | //@*') | Where-Object { $_.Value -match '[^\x00-\x7F]' })
+        Assert-Equal 0 $nonAscii.Count "$n chữ trong file chỉ có ASCII"
+        Assert-Equal 3 (Select-All $u "//e:Extensions/e:File[@ma='base64']").Count "$n ba script nhúng dạng base64"
         $paths = Select-All $u '//u:RunSynchronousCommand/u:Path'
         Assert-True (-not @($paths | Where-Object { $_.InnerText.Length -gt 255 }).Count) "$n mọi lệnh RunSynchronous tối đa 255 ký tự"
         $orders = @(Select-All $u "//u:settings[@pass='windowsPE']//u:RunSynchronousCommand/u:Order" | ForEach-Object { [int]$_.InnerText })
@@ -89,11 +93,15 @@ try {
             Assert-Equal 0 $guard.Count "$n không có script kiểm tra ổ"
         }
 
-        # Giải nén script nhúng như bước specialize, nhưng vào thư mục tạm.
+        # Giải nén script nhúng như bước specialize, nhưng vào thư mục tạm, từ bản đã bị đổi chữ ngoài ASCII thành '?'
+        # như bản Setup chép vào Panther.
         $ext = Join-Path $d "giai-nen-$n"
-        foreach ($fe in Select-All $u '//e:Extensions/e:File') { $fe.SetAttribute('path', $fe.GetAttribute('path').Replace('C:\Windows\Setup\Scripts', $ext)) }
-        $sb = [scriptblock]::Create((Select-One $u '//e:ExtractScript').InnerText)
-        & $sb $u.Doc
+        $pan = New-Object Xml.XmlDocument
+        $pan.LoadXml([regex]::Replace($u.Doc.OuterXml, '[^\x00-\x7F]', '?'))
+        $panU = [pscustomobject]@{ Doc = $pan; Ns = $u.Ns }
+        foreach ($fe in Select-All $panU '//e:Extensions/e:File') { $fe.SetAttribute('path', $fe.GetAttribute('path').Replace('C:\Windows\Setup\Scripts', $ext)) }
+        $sb = [scriptblock]::Create((Select-One $panU '//e:ExtractScript').InnerText)
+        & $sb $pan
         foreach ($s in 'Specialize.ps1', 'DefaultUser.ps1', 'FirstLogon.ps1') {
             $p = Join-Path $ext $s
             $src = [IO.File]::ReadAllText((Join-Path $script:Repo "unattend\scripts\$s"), [Text.Encoding]::UTF8).Trim() -replace "`r`n", "`n"
@@ -118,7 +126,10 @@ try {
     Assert-Equal 0 $r.Code 'sinh với tài khoản tự tạo'
     $u = Read-Unattend (Join-Path $out2 '1_Chon-o-bang-tay.xml')
     Assert-Equal 'KeToan' (Select-One $u '//u:LocalAccount/u:Name').InnerText 'tạo tài khoản KeToan'
-    Assert-Equal 'Kế toán' (Select-One $u '//u:LocalAccount/u:DisplayName').InnerText 'tên hiển thị tiếng Việt'
+    Assert-Equal 'Ke toan' (Select-One $u '//u:LocalAccount/u:DisplayName').InnerText 'tên hiển thị trong unattend bỏ dấu'
+    $asj = (Select-One $u "//e:Extensions/e:File[contains(@path, 'AutoSetup.json')]").InnerText | ConvertFrom-Json
+    Assert-Equal 'Kế toán' $asj.taiKhoan.tenHienThi 'AutoSetup.json giữ tên hiển thị có dấu cho FirstLogon'
+    Assert-Equal 0 @($u.Doc.SelectNodes('//text() | //@*') | Where-Object { $_.Value -match '[^\x00-\x7F]' }).Count 'tài khoản có dấu: file vẫn chỉ có ASCII'
     Assert-Equal 'Administrators' (Select-One $u '//u:LocalAccount/u:Group').InnerText 'tài khoản quản trị'
     $expect = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('Mk@2026!Password'))
     Assert-Equal $expect (Select-One $u '//u:LocalAccount/u:Password/u:Value').InnerText 'mật khẩu che kiểu Windows SIM'

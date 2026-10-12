@@ -39,6 +39,14 @@ foreach ($f in 'C:\Windows\Panther\unattend.xml', 'C:\Windows\Panther\unattend-o
     }
 }
 
+# Tài khoản tự tạo: file unattend chỉ ghi được tên hiển thị không dấu, đặt lại tên có dấu ở đây.
+if ($cfg -and $cfg.PSObject.Properties['taiKhoan'] -and $cfg.taiKhoan.tenHienThi) {
+    try {
+        Set-LocalUser -Name ([string]$cfg.taiKhoan.ten) -FullName ([string]$cfg.taiKhoan.tenHienThi) -ErrorAction Stop
+        Write-Log "tên hiển thị của $($cfg.taiKhoan.ten): $($cfg.taiKhoan.tenHienThi)"
+    } catch { Write-Log "LỖI đặt tên hiển thị: $($_.Exception.Message)" }
+}
+
 if (-not $cfg -or $cfg.sauCai -ne $true) { Write-Log 'Bản "Chỉ Windows": không chạy bước sau cài.'; exit 0 }
 
 # USB có thể được gắn chậm hơn lúc đăng nhập vài giây: đợi tối đa 90 giây.

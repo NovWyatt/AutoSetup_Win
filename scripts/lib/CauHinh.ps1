@@ -66,9 +66,10 @@ function Test-ComputerName {
 }
 
 function Test-AccountName {
-    # Tên tài khoản local: 1-20 ký tự, không có ký tự cấm, không trùng tên có sẵn của Windows.
+    # Tên tài khoản local: 1-20 ký tự không dấu (Setup đổi chữ có dấu trong file unattend thành '?'), không có ký tự
+    # cấm, không trùng tên có sẵn của Windows.
     param([string]$Name)
-    if (-not $Name -or $Name.Length -gt 20) { return $false }
+    if (-not $Name -or $Name.Length -gt 20 -or $Name -notmatch '^[\x20-\x7E]+$') { return $false }
     if ($Name -match '["/\\\[\]:;|=,+*?<>@]' -or $Name.Trim() -ne $Name -or $Name.EndsWith('.')) { return $false }
     return ($Name -notin 'Administrator', 'Guest', 'DefaultAccount', 'WDAGUtilityAccount', 'SYSTEM', 'defaultuser0')
 }
@@ -98,7 +99,7 @@ function Test-AutoSetupConfig {
     $tk = & $v 'taiKhoan.cheDo' ''
     if ($tk -notin 'hoi', 'tu-dong') { $err.Add('taiKhoan.cheDo phải là hoi hoặc tu-dong.') }
     if ($tk -eq 'tu-dong' -and -not (Test-AccountName ([string](& $v 'taiKhoan.ten' '')))) {
-        $err.Add('taiKhoan.ten không hợp lệ (1-20 ký tự, không có " / \ [ ] : ; | = , + * ? < > @, không dùng tên có sẵn như Administrator).')
+        $err.Add('taiKhoan.ten không hợp lệ (1-20 ký tự không dấu, không có " / \ [ ] : ; | = , + * ? < > @, không dùng tên có sẵn như Administrator).')
     }
 
     $name = [string](& $v 'tenMay' '*')

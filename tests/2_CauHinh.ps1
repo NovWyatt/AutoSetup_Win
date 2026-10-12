@@ -37,6 +37,8 @@ Test-Bad 'ventoy.macDinh' 9 'ventoy.macDinh'
 $c = Read-JsonFile $cfgPath
 $c.taiKhoan.cheDo = 'tu-dong'; $c.taiKhoan.ten = 'Administrator'
 Assert-True (@(Test-AutoSetupConfig $c | Where-Object { $_ -like '*taiKhoan.ten*' }).Count) 'không cho tài khoản tên Administrator'
+$c.taiKhoan.ten = 'Kế Toán'
+Assert-True (@(Test-AutoSetupConfig $c | Where-Object { $_ -like '*taiKhoan.ten*' }).Count) 'không cho tên tài khoản có dấu (Setup đổi thành ?)'
 $c.taiKhoan.ten = 'Ke Toan'
 Assert-Equal 0 (Test-AutoSetupConfig $c).Count 'tài khoản có dấu cách hợp lệ'
 $c = Read-JsonFile $cfgPath

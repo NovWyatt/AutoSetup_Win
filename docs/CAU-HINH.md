@@ -39,8 +39,8 @@ Danh sách ứng dụng riêng: `cau-hinh/UngDung.local.json` (thay cả file `U
 | Khoá | Mặc định | Ý nghĩa |
 |---|---|---|
 | `cheDo` | `hoi` | `hoi`: OOBE hỏi tên, mật khẩu tài khoản local (không đòi tài khoản Microsoft). `tu-dong`: tự tạo tài khoản quản trị theo `ten`, mật khẩu hỏi lúc chạy `TaoUnattend` (hoặc `-MatKhauFile`, `-KhongMatKhau`) |
-| `ten` | `Admin` | Tên tài khoản (chế độ `tu-dong`); 1-20 ký tự, không dùng tên có sẵn như Administrator |
-| `tenHienThi` | trống | Tên hiển thị (có dấu được); trống thì bằng `ten` |
+| `ten` | `Admin` | Tên tài khoản (chế độ `tu-dong`); 1-20 ký tự **không dấu**, không dùng tên có sẵn như Administrator |
+| `tenHienThi` | trống | Tên hiển thị (có dấu được); trống thì bằng `ten`. File unattend chỉ ghi bản bỏ dấu (Windows Setup đổi chữ có dấu thành `?`), lần đăng nhập đầu đặt lại tên có dấu |
 | `tuDangNhap` | `true` | Chế độ `tu-dong`: tự đăng nhập một lần để bước sau cài chạy không cần ai gõ mật khẩu |
 
 ## `tenMay`

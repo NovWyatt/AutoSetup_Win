@@ -62,6 +62,43 @@ function Wait-Close {
 
 function ConvertTo-XmlText { param([string]$Text) return [Security.SecurityElement]::Escape($Text) }
 
+# Windows Setup chép file trả lời vào C:\Windows\Panther\unattend.xml và đổi mọi ký tự ngoài ASCII thành '?'; các pass
+# sau (specialize, oobeSystem) đọc bản đó. Vì vậy chữ trong file unattend phải là ASCII: script nhúng dạng base64,
+# JSON viết \uXXXX, tên hiển thị bỏ dấu (FirstLogon đặt lại tên có dấu).
+
+function ConvertTo-KhongDau {
+    # Bỏ dấu tiếng Việt: "Kế toán" -> "Ke toan". Ký tự ngoài ASCII còn lại thành '_'.
+    param([string]$Text)
+    $s = $Text.Replace([string][char]0x0111, 'd').Replace([string][char]0x0110, 'D').Normalize([Text.NormalizationForm]::FormD)
+    $sb = New-Object Text.StringBuilder
+    foreach ($ch in $s.ToCharArray()) {
+        if ([Globalization.CharUnicodeInfo]::GetUnicodeCategory($ch) -eq [Globalization.UnicodeCategory]::NonSpacingMark) { continue }
+        if ([int]$ch -gt 0x7E) { [void]$sb.Append('_') } else { [void]$sb.Append($ch) }
+    }
+    return $sb.ToString().Normalize([Text.NormalizationForm]::FormC)
+}
+
+function ConvertTo-AsciiJson {
+    # Chữ ngoài ASCII trong JSON (chỉ nằm trong chuỗi) viết thành \uXXXX; ConvertFrom-Json đọc lại đúng.
+    param([string]$Json)
+    return [regex]::Replace($Json, '[^\x00-\x7F]', { param($m) '\u{0:x4}' -f [int][char]$m.Value })
+}
+
+function ConvertTo-Base64Lines {
+    # Nội dung tệp (UTF-8) dạng base64, xuống dòng mỗi 76 ký tự cho dễ đọc file XML.
+    param([string]$Text)
+    return [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Text), [Base64FormattingOptions]::InsertLineBreaks)
+}
+
+function Get-ExtractScript {
+    # GiaiNen.ps1 bỏ chú thích (có tiếng Việt) để nhúng vào ExtractScript; phần mã phải là ASCII.
+    param([string]$Source)
+    $code = ($Source -replace '(?s)<#.*?#>', '') -split "`r?`n" | Where-Object { $_.Trim() -and -not $_.Trim().StartsWith('#') }
+    $text = ($code | ForEach-Object { $_.TrimEnd() }) -join "`r`n"
+    if ($text -match '[^\x00-\x7F]') { throw 'unattend\scripts\GiaiNen.ps1: phần mã (ngoài chú thích) chỉ được dùng ký tự ASCII.' }
+    return $text
+}
+
 function New-El {
     # Phần tử trong namespace unattend; -Add thêm wcm:action="add".
     param([xml]$Doc, [string]$Name, $Text = $null, [switch]$Add)
@@ -243,7 +280,7 @@ function New-VariantXml {
         $ua = New-El $doc 'UserAccounts'
         $la = New-El $doc 'LocalAccounts'
         $acc = New-El $doc 'LocalAccount' -Add
-        Add-Children $acc $doc @(@('Name', $name), @('DisplayName', $display), @('Group', 'Administrators'))
+        Add-Children $acc $doc @(@('Name', $name), @('DisplayName', (ConvertTo-KhongDau $display)), @('Group', 'Administrators'))
         $pw = New-El $doc 'Password'
         Add-Children $pw $doc @(@('Value', $pwValue), @('PlainText', $pwPlain))
         [void]$acc.AppendChild($pw)
@@ -272,8 +309,10 @@ function New-VariantXml {
         oobe       = & $cv 'oobe'
         taoLuc     = (Get-Date).ToString('s')
     }
+    if ($accountAuto) { $info.taiKhoan = [ordered]@{ ten = $name; tenHienThi = $display } }
+    # AutoSetup.json để dạng chữ (Ventoy điền biến $$...$$ vào đó); script dạng base64 (thuộc tính ma="base64").
     $files = [ordered]@{
-        'C:\Windows\Setup\Scripts\AutoSetup.json'  = (ConvertTo-JsonText $info)
+        'C:\Windows\Setup\Scripts\AutoSetup.json'  = (ConvertTo-AsciiJson (ConvertTo-JsonText $info))
         'C:\Windows\Setup\Scripts\Specialize.ps1'  = $Sources.Specialize
         'C:\Windows\Setup\Scripts\DefaultUser.ps1' = $Sources.DefaultUser
         'C:\Windows\Setup\Scripts\FirstLogon.ps1'  = $Sources.FirstLogon
@@ -281,7 +320,13 @@ function New-VariantXml {
     foreach ($path in $files.Keys) {
         $f = $doc.CreateElement('File', $script:NsExt)
         $f.SetAttribute('path', $path)
-        $f.InnerText = "`n" + $files[$path].Trim() + "`n"
+        $text = $files[$path].Trim() + "`r`n"
+        if ($path -like '*.ps1') {
+            $f.SetAttribute('ma', 'base64')
+            $f.InnerText = "`n" + (ConvertTo-Base64Lines $text) + "`n"
+        } else {
+            $f.InnerText = "`n" + $text.Trim() + "`n"
+        }
         [void]$ext.AppendChild($f)
     }
     return $doc
@@ -331,7 +376,7 @@ try {
     }
     $src = @{
         Khung       = [IO.File]::ReadAllText((Join-Path $repo 'unattend\khung.xml'), [Text.Encoding]::UTF8)
-        GiaiNen     = [IO.File]::ReadAllText((Join-Path $repo 'unattend\scripts\GiaiNen.ps1'), [Text.Encoding]::UTF8).Trim()
+        GiaiNen     = Get-ExtractScript ([IO.File]::ReadAllText((Join-Path $repo 'unattend\scripts\GiaiNen.ps1'), [Text.Encoding]::UTF8))
         Specialize  = [IO.File]::ReadAllText((Join-Path $repo 'unattend\scripts\Specialize.ps1'), [Text.Encoding]::UTF8)
         DefaultUser = [IO.File]::ReadAllText((Join-Path $repo 'unattend\scripts\DefaultUser.ps1'), [Text.Encoding]::UTF8)
         FirstLogon  = [IO.File]::ReadAllText((Join-Path $repo 'unattend\scripts\FirstLogon.ps1'), [Text.Encoding]::UTF8)
