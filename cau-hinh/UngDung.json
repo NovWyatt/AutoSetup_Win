@@ -2,8 +2,8 @@
   "ghiChu": "Danh sách ứng dụng cài bằng winget sau khi cài Windows. id: mã gói winget (kiểm bằng 'winget show --id <id> -e --source winget'). macDinh: true là cài. nhom: các ứng dụng cùng nhóm chỉ cài một (cái đứng trước được ưu tiên). doiThuMuc: bộ cài nhận được thư mục cài riêng (winget --location), chỉ dùng khi sauCai.thuMucCai trong CauHinh.json có giá trị. Đã kiểm mã gói ngày 2026-10-11.",
   "ungDung": [
     { "khoa": "Zalo", "id": "VNGCorp.Zalo", "ten": "Zalo", "macDinh": true },
-    { "khoa": "UniKey", "id": "UniKey.UniKey", "ten": "UniKey (bộ gõ tiếng Việt)", "macDinh": true, "nhom": "bo-go" },
-    { "khoa": "EVKey", "id": "lamquangminh.EVKey", "ten": "EVKey (bộ gõ tiếng Việt)", "macDinh": false, "nhom": "bo-go", "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản, tự bật khởi động cùng Windows trong EVKey" },
+    { "khoa": "UniKey", "id": "UniKey.UniKey", "ten": "UniKey (bộ gõ tiếng Việt)", "macDinh": true, "nhom": "bo-go", "loiTat": "UnikeyNT.exe", "tuChay": true, "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản" },
+    { "khoa": "EVKey", "id": "lamquangminh.EVKey", "ten": "EVKey (bộ gõ tiếng Việt)", "macDinh": false, "nhom": "bo-go", "loiTat": "EVKey64.exe", "tuChay": true, "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản" },
     { "khoa": "SevenZip", "id": "7zip.7zip", "ten": "7-Zip (nén, giải nén)", "macDinh": true },
     { "khoa": "WinRAR", "id": "RARLab.WinRAR", "ten": "WinRAR (bản dùng thử)", "macDinh": false },
     { "khoa": "Foxit", "id": "Foxit.FoxitReader", "ten": "Foxit PDF Reader", "macDinh": true, "nhom": "doc-pdf" },

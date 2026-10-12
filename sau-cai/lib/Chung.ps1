@@ -11,6 +11,33 @@ function Write-Bad { param([string]$Text) Write-Host "  [X]  $Text" -ForegroundC
 function Write-Info { param([string]$Text) Write-Host "  [i]  $Text" -ForegroundColor Gray }
 function Write-Plan { param([string]$Text) Write-Host "   ->  $Text" -ForegroundColor White }
 
+function Set-ConsoleFont {
+    # Cửa sổ powershell.exe mặc định dùng Lucida Console, font này thiếu chữ tiếng Việt (ư, ả, ầ... hiện ô vuông):
+    # đổi cửa sổ đang chạy sang Consolas, giữ cỡ chữ. Không có cửa sổ console (chạy ẩn, ra file) thì thôi.
+    param([string]$Name = 'Consolas')
+    try {
+        if (-not ('AutoSetup.ConsoleFont' -as [type])) {
+            Add-Type -Namespace AutoSetup -Name ConsoleFont -ErrorAction Stop -MemberDefinition @'
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+public struct Info {
+    public uint cbSize; public uint nFont; public short X; public short Y; public uint FontFamily; public uint FontWeight;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string FaceName;
+}
+[DllImport("kernel32.dll")] public static extern IntPtr GetStdHandle(int nStdHandle);
+[DllImport("kernel32.dll")] public static extern bool GetCurrentConsoleFontEx(IntPtr h, bool max, ref Info info);
+[DllImport("kernel32.dll")] public static extern bool SetCurrentConsoleFontEx(IntPtr h, bool max, ref Info info);
+'@
+        }
+        $h = [AutoSetup.ConsoleFont]::GetStdHandle(-11)   # STD_OUTPUT_HANDLE
+        $f = New-Object AutoSetup.ConsoleFont+Info
+        $f.cbSize = [uint32][Runtime.InteropServices.Marshal]::SizeOf($f)
+        if (-not [AutoSetup.ConsoleFont]::GetCurrentConsoleFontEx($h, $false, [ref]$f) -or $f.FaceName -eq $Name) { return }
+        $f.FaceName = $Name; $f.X = 0; $f.FontFamily = 54; $f.FontWeight = 400   # 54 = FF_MODERN | TrueType
+        if ($f.Y -lt 10) { $f.Y = 16 }
+        [void][AutoSetup.ConsoleFont]::SetCurrentConsoleFontEx($h, $false, [ref]$f)
+    } catch { }
+}
+
 function Test-IsAdmin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     return ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

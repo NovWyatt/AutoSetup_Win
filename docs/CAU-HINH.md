@@ -103,6 +103,7 @@ gạch ngang); tên cố định chỉ hợp khi USB dùng cho một máy.
 | `capNhatWindows` | `false` | Cài bản cập nhật Windows (lâu, có thể khởi động lại nhiều lần) |
 | `oDuLieuLaD` | `true` | Đưa phân vùng dữ liệu về chữ D |
 | `choMangPhut` | `10` | Đợi mạng tối đa bao nhiêu phút ở lần chạy đầu (lần sau 2 phút) |
+| `choCaiPhut` | `30` | Mỗi ứng dụng cài quá bao nhiêu phút thì coi là treo: dừng bộ cài, báo lỗi, cài ứng dụng tiếp theo |
 | `thuMucCai` | trống | Thư mục cài riêng (vd `D:\Program Files`) cho ứng dụng có `doiThuMuc: true`; trống là chỗ mặc định |
 | `tuKhoiDongLai` | `true` | Cần khởi động lại thì tự khởi động lại sau 60 giây |
 
@@ -118,4 +119,6 @@ gạch ngang); tên cố định chỉ hợp khi USB dùng cho một máy.
 
 Mỗi ứng dụng: `khoa` (tên ngắn), `id` (mã gói winget, kiểm bằng `winget show --id <id> -e --source winget`), `ten`,
 `macDinh` (`true` là cài), `nhom` (cùng nhóm chỉ cài một, cái đứng trước được ưu tiên: bộ gõ, trình đọc PDF),
-`doiThuMuc` (bộ cài nhận được thư mục cài riêng), `ghiChu`.
+`doiThuMuc` (bộ cài nhận được thư mục cài riêng), `loiTat` (ứng dụng portable như UniKey, EVKey: winget chỉ giải nén,
+không tạo lối tắt; ghi tên file chạy để bước sau cài tạo lối tắt trong Start), `tuChay` (cùng `loiTat`: thêm lối tắt vào
+Startup để chạy cùng Windows, mở luôn sau khi cài), `ghiChu`.

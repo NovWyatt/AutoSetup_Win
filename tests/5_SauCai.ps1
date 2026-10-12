@@ -1,5 +1,6 @@
 ﻿<#
-  Bước sau cài: chọn ứng dụng theo nhóm, cài bằng winget giả (đã có, cài được, cài lỗi, thư mục cài riêng), trạng
+  Bước sau cài: chọn ứng dụng theo nhóm, cài bằng winget giả (đã có, cài được, cài lỗi, thư mục cài riêng, lối tắt
+  cho ứng dụng portable), trạng
   thái đọc ghi lại được, đổi tên máy, rồi chạy thử cả lượt (-ChayThu) trên bản sao trong thư mục tạm.
   KiemThu: doc-may (lượt chạy thử đọc ổ đĩa, thiết bị của máy thật, không đổi gì)
 #>
@@ -25,6 +26,7 @@ try {
         ':install',
         'echo %*>>"%AS_FAKE%\install.log"',
         'echo %~3| findstr /i "Loi" >nul && exit /b 1603',
+        'echo %~3| findstr /i "Treo" >nul && (ping -n 31 127.0.0.1 >nul& exit /b 0)',
         'type nul > "%AS_FAKE%\%~3.ok"',
         'exit /b 0'
     ) -join "`r`n"
@@ -73,6 +75,37 @@ try {
     Assert-Equal 'chay-thu' $dry[0].ketQua 'chạy thử: không cài'
     Assert-True (-not (Test-Path (Join-Path $fake 'Z.Z.ok'))) 'chạy thử: winget install không được gọi'
 
+    # ---- ứng dụng portable: lối tắt trong Start, Startup
+    $env:AUTOSETUP_PORTABLE = Join-Path $d 'portable'
+    $env:AUTOSETUP_LOITAT = Join-Path $d 'loitat'
+    $pk = Join-Path $env:AUTOSETUP_PORTABLE 'Bo.Go_Microsoft.Winget.Source_8wekyb3d8bbwe\x64'
+    New-Item -ItemType Directory -Path $pk -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $pk 'BoGo.exe'), '')
+    $port = @(
+        [pscustomobject]@{ khoa = 'BoGo'; id = 'Bo.Go'; ten = 'Bộ gõ'; macDinh = $true; loiTat = 'BoGo.exe'; tuChay = $true },
+        [pscustomobject]@{ khoa = 'Thieu'; id = 'Thieu.Exe'; ten = 'Thiếu'; macDinh = $true; loiTat = 'Thieu.exe' }
+    )
+    $res = Install-Apps -Apps $port
+    $lnk = Join-Path $env:AUTOSETUP_LOITAT 'Programs\BoGo.lnk'
+    Assert-Equal 'da-cai' $res[0].ketQua 'portable: cài xong'
+    Assert-True (Test-Path $lnk) 'portable: có lối tắt trong Start'
+    Assert-True (Test-Path (Join-Path $env:AUTOSETUP_LOITAT 'Startup\BoGo.lnk')) 'tuChay: có lối tắt trong Startup'
+    Assert-Equal (Join-Path $pk 'BoGo.exe') ((New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath) 'lối tắt trỏ đúng file chạy'
+    Assert-True ($res[1].ghiChu -match 'không thấy Thieu\.exe') 'không thấy file chạy: ghi chú, không lỗi cả bước'
+    Assert-True (-not (Test-Path (Join-Path $env:AUTOSETUP_LOITAT 'Startup\Thieu.lnk'))) 'không tuChay: không vào Startup'
+    Remove-Item -LiteralPath $lnk
+    $res = Install-Apps -Apps @($port[0])
+    Assert-True ($res[0].ketQua -eq 'da-co' -and (Test-Path $lnk)) 'đã có: vẫn bảo đảm lối tắt'
+
+    # ---- bộ cài treo: dừng khi quá giờ (cả tiến trình con), không thử lại
+    $t0 = Get-Date
+    $res = Install-Apps -Apps @([pscustomobject]@{ khoa = 'Treo'; id = 'App.Treo'; ten = 'Treo'; macDinh = $true }) -TimeoutSeconds 3
+    $sec = [int]((Get-Date) - $t0).TotalSeconds
+    Assert-Equal 'loi' $res[0].ketQua 'bộ cài treo: báo lỗi'
+    Assert-True ($res[0].ghiChu -match 'quá 3 giây') "bộ cài treo: ghi chú quá giờ ($($res[0].ghiChu))"
+    Assert-True ($sec -lt 20) "bộ cài treo: dừng sau thời hạn, không thử lại ($sec giây)"
+    Assert-Equal 0 @(Get-CimInstance Win32_Process -Filter "Name='PING.EXE'" | Where-Object { $_.CommandLine -match '-n 31' }).Count 'bộ cài treo: dừng cả tiến trình con'
+
     # ---- trạng thái
     $ChayThu = $false
     $st = New-State
@@ -120,7 +153,7 @@ try {
     $r = Invoke-Ps (Join-Path $as 'sau-cai\SauCai.ps1') @('-ChayThu', '-KhongDung', '-Chi', 'khong-co')
     Assert-Equal 1 $r.Code 'bước không có: mã 1'
 } finally {
-    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP') { Set-Item -Path "env:$v" -Value '' }
+    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP', 'AUTOSETUP_PORTABLE', 'AUTOSETUP_LOITAT') { Set-Item -Path "env:$v" -Value '' }
     Remove-TestDir $d
 }
 

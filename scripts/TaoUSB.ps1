@@ -35,6 +35,7 @@ try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 $repo = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'lib\CauHinh.ps1')
 . (Join-Path $repo 'sau-cai\lib\Chung.ps1')
+Set-ConsoleFont
 $script:OutDir = if ($env:AUTOSETUP_OUT) { $env:AUTOSETUP_OUT } else { Join-Path $repo 'out\unattend' }   # bài thử đặt AUTOSETUP_OUT
 $script:UsbBase = '/AutoSetup/unattend/'
 

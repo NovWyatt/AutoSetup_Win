@@ -36,6 +36,7 @@ try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 $repo = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'lib\CauHinh.ps1')
 . (Join-Path $repo 'sau-cai\lib\Chung.ps1')
+Set-ConsoleFont
 if (-not $CauHinh) { $CauHinh = Join-Path $repo 'cau-hinh\CauHinh.json' }
 if (-not $Ra) { $Ra = Join-Path $repo 'out\unattend' }
 

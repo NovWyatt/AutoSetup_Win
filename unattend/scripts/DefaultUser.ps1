@@ -46,7 +46,11 @@ if (Test-On $t 'taskbarTrai') { Set-UserReg $adv 'TaskbarAl' 0 }
 if (Test-On $t 'anTaskView') { Set-UserReg $adv 'ShowTaskViewButton' 0 }
 if (Test-On $t 'hienEndTask') { Set-UserReg "$adv\TaskbarDeveloperSettings" 'TaskbarEndTask' 1 }
 if ($t -and $t.timKiem -and $searchModes.ContainsKey([string]$t.timKiem)) {
-    Set-UserReg 'Software\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' $searchModes[[string]$t.timKiem]
+    $mode = $searchModes[[string]$t.timKiem]
+    Set-UserReg 'Software\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' $mode
+    # Windows 11 đặt lại ô tìm kiếm ở lần đăng nhập đầu của mỗi tài khoản (thử máy ảo build 26300: 1 thành 2), nên ghi
+    # lại bằng RunOnce, chạy sau bước đó; taskbar đổi theo ngay. conhost --headless: không loé cửa sổ.
+    Set-UserReg 'Software\Microsoft\Windows\CurrentVersion\RunOnce' 'AutoSetupTimKiem' ('conhost.exe --headless reg.exe add HKCU\Software\Microsoft\Windows\CurrentVersion\Search /v SearchboxTaskbarMode /t REG_DWORD /d {0} /f' -f $mode) 'String'
 }
 if (Test-On $t 'tatBingTrongStart') { Set-UserReg 'Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1 }
 if (Test-On $t 'tatCopilot') { Set-UserReg 'Software\Policies\Microsoft\Windows\WindowsCopilot' 'TurnOffWindowsCopilot' 1 }

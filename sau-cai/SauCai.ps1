@@ -28,6 +28,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'   # thanh tiến trình của Invoke-WebRequest, Add-AppxPackage che mất chữ đã in
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 $script:Version = '1.0'
 $here = $PSScriptRoot
@@ -165,7 +166,7 @@ function Invoke-StepUngDung {
     Write-Info ('Sẽ cài: ' + (($sel.Chon | ForEach-Object { $_.ten }) -join ', '))
     $root = [string](Get-Cfg 'sauCai.thuMucCai' '')
     if ($root -and -not (Test-Path -LiteralPath ($root.Substring(0, 3)))) { Write-Warn "Không có ổ của thư mục cài $root, cài vào chỗ mặc định."; $root = '' }
-    $res = Install-Apps -Apps $sel.Chon -InstallRoot $root -DryRun:$ChayThu
+    $res = Install-Apps -Apps $sel.Chon -InstallRoot $root -TimeoutSeconds (60 * [int](Get-Cfg 'sauCai.choCaiPhut' 30)) -DryRun:$ChayThu
     if (-not $ChayThu) { $State.ungDung = $res }
     $bad = @($res | Where-Object { $_.ketQua -eq 'loi' })
     if ($ChayThu) { return @('chay-thu', '') }
@@ -207,11 +208,11 @@ function Invoke-StepDriver {
         # Cài xong có driver mới cần khởi động lại: chạy thêm một vòng sau khi khởi động (tối đa 3 vòng).
         if ($w.KhoiDongLai -or ($w.DaCai.Count -and [int]$State.driver.vong -lt 3)) { $reboot = $true }
     } else { $notes += 'Windows Update: bỏ qua vì chưa có mạng.' }
-    if ($ChayThu) { return @('chay-thu', ($notes -join ' ')) }
-    if ($reboot -and [int]$State.driver.vong -lt 3) { return @('cho-khoi-dong-lai', ($notes -join ' ')) }
-    if ($failed) { return @('loi', ($notes -join ' ')) }
-    if (-not $Net) { return @('cho-mang', ($notes -join ' ')) }
-    return @('xong', ($notes -join ' '))
+    if ($ChayThu) { return @('chay-thu', ($notes -join '; ')) }
+    if ($reboot -and [int]$State.driver.vong -lt 3) { return @('cho-khoi-dong-lai', ($notes -join '; ')) }
+    if ($failed) { return @('loi', ($notes -join '; ')) }
+    if (-not $Net) { return @('cho-mang', ($notes -join '; ')) }
+    return @('xong', ($notes -join '; '))
 }
 
 function Invoke-StepCapNhatWindows {
@@ -321,10 +322,11 @@ function Clear-AutoLogon {
 }
 
 function Start-KeepAwake {
-    # Giữ máy không ngủ trong lúc chạy (chỉ trong tiến trình này, không đổi cài đặt nguồn).
+    # Giữ máy không ngủ, màn hình không tắt trong lúc chạy để người cài xem được tiến độ (chỉ trong tiến trình này,
+    # không đổi cài đặt nguồn).
     try {
         Add-Type -Namespace AutoSetup -Name Power -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags);' -ErrorAction Stop
-        [void][AutoSetup.Power]::SetThreadExecutionState([uint32]'0x80000001')   # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+        [void][AutoSetup.Power]::SetThreadExecutionState([uint32]'0x80000003')   # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
     } catch { }
 }
 
@@ -426,6 +428,7 @@ if (-not $ChayThu) {
         $transcript = $true
     } catch { }
 }
+Set-ConsoleFont
 Start-KeepAwake
 $code = 1
 try { $code = Invoke-Main }
