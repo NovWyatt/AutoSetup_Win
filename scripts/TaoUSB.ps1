@@ -101,13 +101,15 @@ try {
     if ($root.TrimEnd('\') -ieq $env:SystemDrive) { throw 'Không chép vào ổ Windows.' }
     Write-Info "USB đích: $root"
 
-    $cfgPath = Join-Path $repo 'cau-hinh\CauHinh.json'
+    # Bài thử đặt AUTOSETUP_CAUHINH (bản sao cau-hinh không có file .local.json của người dùng).
+    $cfgDir = if ($env:AUTOSETUP_CAUHINH) { $env:AUTOSETUP_CAUHINH } else { Join-Path $repo 'cau-hinh' }
+    $cfgPath = Join-Path $cfgDir 'CauHinh.json'
     $cfg = Get-AutoSetupConfig $cfgPath
     $errs = Test-AutoSetupConfig $cfg
     if ($errs.Count) { Write-Bad 'Cấu hình có lỗi:'; foreach ($e in $errs) { Write-Sub $e }; Wait-Close; exit 1 }
 
     if (-not $KhongSinhLai) {
-        $tuArgs = @{ Ra = $script:OutDir; KhongDung = $true }
+        $tuArgs = @{ CauHinh = $cfgPath; Ra = $script:OutDir; KhongDung = $true }
         if ($DiskId -ne '') { $tuArgs.DiskId = $DiskId }
         if ($MatKhauFile) { $tuArgs.MatKhauFile = $MatKhauFile }
         if ($KhongMatKhau) { $tuArgs.KhongMatKhau = $true }
@@ -119,8 +121,8 @@ try {
     foreach ($t in $list.tep) { if (-not (Test-Path -LiteralPath (Join-Path $script:OutDir $t.tep))) { throw "Thiếu $($t.tep) trong $($script:OutDir). Chạy lại không có -KhongSinhLai." } }
 
     $as = Join-Path $root 'AutoSetup'
-    $appList = Join-Path $repo 'cau-hinh\UngDung.local.json'
-    if (-not (Test-Path -LiteralPath $appList)) { $appList = Join-Path $repo 'cau-hinh\UngDung.json' }
+    $appList = Join-Path $cfgDir 'UngDung.local.json'
+    if (-not (Test-Path -LiteralPath $appList)) { $appList = Join-Path $cfgDir 'UngDung.json' }
     $pattern = [string](Get-ConfigValue $cfg 'ventoy.locTenIso' '(?i)win')
     $isos = Find-WindowsIsos $root $pattern
     $isoPaths = @($isos | ForEach-Object { Get-VentoyPath $root $_.FullName })

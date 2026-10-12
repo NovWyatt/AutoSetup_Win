@@ -16,7 +16,7 @@ param(
     [string]$Ten = 'AutoSetup-Thu',
     [Parameter(Mandatory)] [string]$IsoWin,
     [string]$IsoThu = '',
-    [int[]]$OGB = @(64),
+    [string[]]$OGB = @('64'),   # chuỗi: qua powershell -File, "64,80" thành số 6480 nếu khai báo [int[]]
     [int]$RamMB = 4096,
     [int]$Cpu = 4,
     [switch]$Chay
@@ -26,6 +26,8 @@ try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $IsoThu) { $IsoThu = Join-Path $repo 'out\may-ao\usb-3_XOA-SACH-o_1-phan-vung.iso' }
 foreach ($f in $IsoWin, $IsoThu) { if (-not (Test-Path -LiteralPath $f)) { throw "Không có $f" } }
+$sizes = @($OGB | ForEach-Object { $_ -split ',' } | Where-Object { $_.Trim() } | ForEach-Object { [int]$_.Trim() })
+if (-not $sizes.Count -or @($sizes | Where-Object { $_ -lt 30 }).Count) { throw 'Mỗi ổ ít nhất 30 GB (-OGB 64 hoặc -OGB 64,80).' }
 
 $dir = @($env:VBOX_MSI_INSTALL_PATH, (Get-ItemProperty 'HKLM:\SOFTWARE\Oracle\VirtualBox' -ErrorAction SilentlyContinue).InstallDir,
     "$env:ProgramFiles\Oracle\VirtualBox") | Where-Object { $_ -and (Test-Path -LiteralPath (Join-Path $_ 'VBoxManage.exe')) } | Select-Object -First 1
@@ -40,7 +42,7 @@ function V {
 }
 
 V createvm --name $Ten --ostype Windows11_64 --register | Out-Null
-$cfg = (V showvminfo $Ten --machinereadable | Where-Object { $_ -like 'CfgFile=*' }) -replace '^CfgFile="(.*)"$', '$1'
+$cfg = ((V showvminfo $Ten --machinereadable | Where-Object { $_ -like 'CfgFile=*' }) -replace '^CfgFile="(.*)"$', '$1') -replace '\\\\', '\'
 $vmDir = Split-Path -Parent $cfg
 # Ổ trước, đĩa cài sau: ổ trống thì khởi động đĩa cài; cài xong khởi động thẳng vào Windows.
 # natdnshostresolver: DNS của NAT hay hỏng khi máy thật dùng VPN, Hyper-V; OOBE, winget cần DNS.
@@ -51,9 +53,9 @@ V modifynvram $Ten inituefivarstore | Out-Null
 V modifynvram $Ten enrollmssignatures | Out-Null
 V modifynvram $Ten enrollorclpk | Out-Null
 V modifynvram $Ten secureboot --enable | Out-Null
-V storagectl $Ten --name SATA --add sata --controller IntelAhci --portcount ($OGB.Count + 2) --hostiocache on | Out-Null
+V storagectl $Ten --name SATA --add sata --controller IntelAhci --portcount ($sizes.Count + 2) --hostiocache on | Out-Null
 $port = 0
-foreach ($gb in $OGB) {
+foreach ($gb in $sizes) {
     $vdi = Join-Path $vmDir "$Ten-o$port.vdi"
     V createmedium disk --filename $vdi --size ($gb * 1024) --format VDI | Out-Null
     V storageattach $Ten --storagectl SATA --port $port --device 0 --type hdd --medium $vdi | Out-Null
@@ -61,7 +63,7 @@ foreach ($gb in $OGB) {
 }
 V storageattach $Ten --storagectl SATA --port $port --device 0 --type dvddrive --medium $IsoWin | Out-Null
 V storageattach $Ten --storagectl SATA --port ($port + 1) --device 0 --type dvddrive --medium $IsoThu | Out-Null
-Write-Host "Đã tạo máy ảo $Ten ($($OGB -join ' + ') GB, $RamMB MB, $Cpu nhân) tại $vmDir" -ForegroundColor Green
+Write-Host "Đã tạo máy ảo $Ten ($(($sizes | ForEach-Object { "$_ GB" }) -join ' + '), $RamMB MB, $Cpu nhân) tại $vmDir" -ForegroundColor Green
 if (-not $Chay) { return }
 
 # Khởi động, chờ VBox.log báo nạp cdboot.efi (màn "Press any key...") rồi bấm Enter vài lần.

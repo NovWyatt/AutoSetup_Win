@@ -7,8 +7,9 @@ Dùng cho nhiều máy khác nhau (máy văn phòng, máy khách). Mọi lựa c
 [`cau-hinh/CauHinh.json`](cau-hinh/CauHinh.json), không cài cứng trong mã. Không cần biên dịch: chỉ PowerShell 5.1 có sẵn
 trong Windows.
 
-> **Trạng thái:** bộ bài thử giả lập đạt hết (`tests\CHAY_KIEM_THU.bat`). **Chưa chạy thử một lượt cài Windows thật**
-> (máy ảo hoặc máy thật). Thử trên máy ảo trước khi dùng cho máy khách.
+> **Trạng thái:** bộ bài thử giả lập đạt hết (`tests\CHAY_KIEM_THU.bat`). Đã cài trọn lượt trên máy ảo VirtualBox
+> (Windows 11 build 26300): xoá ổ, OOBE, bước sau cài, chặn xoá khi máy có hai ổ; kết quả và các lỗi đã sửa ở
+> [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md). **Chưa thử trên máy thật**: thử một máy trước khi dùng cho máy khách.
 
 ## Làm được gì
 
@@ -70,7 +71,7 @@ Chạy lại bằng tay: `C:\AutoSetup\sau-cai\CHAY_LAI.bat` (`-Chi ung-dung,dri
 |---|---|---|
 | `o-du-lieu` | Đưa phân vùng dữ liệu về chữ D (lúc cài, USB hay chiếm D). Chỉ đổi khi có đúng một phân vùng dữ liệu, hoặc một phân vùng nhãn DATA | |
 | `winget` | Bảo đảm winget chạy được (đăng ký App Installer, cập nhật nguồn) | có |
-| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần | có |
+| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần; bộ cài treo quá `sauCai.choCaiPhut` phút thì dừng; ứng dụng portable (UniKey) được tạo lối tắt Start, Startup | có |
 | `office` | Cài Office bằng Office Deployment Tool trên USB | khi bộ cài không có sẵn file |
 | `driver` | Nạp driver trên USB (`pnputil`), rồi tải driver còn thiếu từ Windows Update; tự khởi động lại, tối đa 3 vòng | Windows Update |
 | `cap-nhat-windows` | Cài bản cập nhật Windows (tắt mặc định, lâu) | có |
@@ -98,8 +99,8 @@ unattend/        khung.xml, KiemTraO.vbs (kiểm tra ổ trong WinPE), scripts/ 
                  GiaiNen, Specialize, DefaultUser, FirstLogon)
 sau-cai/         SauCai.ps1 + lib/ (chép lên USB rồi vào C:\AutoSetup): ứng dụng, driver, ổ đĩa, báo cáo
 scripts/         TaoUnattend.ps1, TaoUSB.ps1, ChuanHoaFile.ps1 (chuẩn hoá mã hoá trước khi commit)
-tests/           bài thử giả lập: CHAY_KIEM_THU.bat
-docs/            CAU-HINH.md, PHAN-TICH-AUTOINSTALLER.md, office-mau.xml
+tests/           bài thử giả lập: CHAY_KIEM_THU.bat; may-ao/ dựng ISO thử, máy ảo VirtualBox
+docs/            CAU-HINH.md, THU-MAY-AO.md, PHAN-TICH-AUTOINSTALLER.md, office-mau.xml
 out/             file unattend đã sinh (không commit: có thể có mật khẩu)
 ```
 
@@ -110,6 +111,8 @@ mã hoá mọi file; cấu hình đúng, sai; 6 file unattend đúng từng bi�
 một biến Ventoy, script nhúng giải nén ra đúng nội dung; đoạn kiểm tra ổ dựng lại từ đúng các lệnh `echo` trong file
 unattend rồi chạy với 13 tình huống ổ đĩa; bước sau cài với winget giả; chép lên USB giả (giữ cấu hình Ventoy cũ).
 Sửa file xong thì chạy `scripts\ChuanHoaFile.ps1` (`.ps1` cần BOM để PowerShell 5.1 đọc đúng tiếng Việt).
+
+Thử cả lượt cài trên máy ảo VirtualBox (không cần Ventoy, không cần USB): [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md).
 
 ## Giới hạn
 

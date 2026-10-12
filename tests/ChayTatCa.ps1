@@ -17,8 +17,11 @@ $failed = @()
 $start = Get-Date
 foreach ($t in $tests) {
     $t0 = Get-Date
+    # Continue: với Stop, dòng stderr đầu tiên của bài hỏng (2>&1) thành lỗi dừng cả lượt, các bài sau không chạy.
+    $ErrorActionPreference = 'Continue'
     $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $t.FullName 2>&1
     $code = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
     $lines = @($out | ForEach-Object { [string]$_ })
     $sec = [int]((Get-Date) - $t0).TotalSeconds
     if ($code -eq 0) {

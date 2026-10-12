@@ -10,6 +10,10 @@ $tao = Join-Path $script:Repo 'scripts\TaoUSB.ps1'
 $d = New-TestDir 'taousb'
 try {
     $env:AUTOSETUP_OUT = Join-Path $d 'out'
+    # Bản sao cấu hình mặc định: không dính CauHinh.local.json, UngDung.local.json của người chạy bài thử.
+    $env:AUTOSETUP_CAUHINH = Join-Path $d 'cau-hinh'
+    New-Item -ItemType Directory -Path $env:AUTOSETUP_CAUHINH -Force | Out-Null
+    foreach ($f in 'CauHinh.json', 'UngDung.json') { Copy-Item (Join-Path $script:Repo "cau-hinh\$f") $env:AUTOSETUP_CAUHINH }
     $usb = Join-Path $d 'usb'
     New-Item -ItemType Directory -Path (Join-Path $usb 'ISO\Windows'), (Join-Path $usb 'ISO\Linux'), (Join-Path $usb 'ventoy') -Force | Out-Null
     foreach ($f in 'ISO\Windows\Win11_26300_x64_en-US.iso', 'ISO\Windows\Windows 10 22H2.iso', 'ISO\Linux\ubuntu-24.04.iso') { [IO.File]::WriteAllText((Join-Path $usb $f), '') }
@@ -64,6 +68,7 @@ try {
     Assert-Equal 1 $r.Code 'từ chối chép vào ổ Windows'
 } finally {
     $env:AUTOSETUP_OUT = ''
+    $env:AUTOSETUP_CAUHINH = ''
     Remove-TestDir $d
 }
 

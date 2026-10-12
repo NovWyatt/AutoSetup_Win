@@ -7,7 +7,9 @@
 $d = New-TestDir 'kiemtrao'
 try {
     $out = Join-Path $d 'unattend'
-    $r = Invoke-Ps (Join-Path $script:Repo 'scripts\TaoUnattend.ps1') @('-Ra', $out, '-KhongDung')
+    # Bản sao cấu hình mặc định: không dính CauHinh.local.json của người chạy bài thử.
+    Copy-Item (Join-Path $script:Repo 'cau-hinh\CauHinh.json') $d
+    $r = Invoke-Ps (Join-Path $script:Repo 'scripts\TaoUnattend.ps1') @('-CauHinh', (Join-Path $d 'CauHinh.json'), '-Ra', $out, '-KhongDung')
     Assert-Equal 0 $r.Code 'sinh file unattend'
     $x = New-Object Xml.XmlDocument
     $x.Load((Join-Path $out '5_XOA-SACH-o_chia-C-D.xml'))

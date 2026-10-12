@@ -50,7 +50,8 @@ Windows 11 build 26300 (ISO tiếng Anh), VirtualBox 7.2 trên Windows 11 có Hy
 | specialize | Specialize.ps1, DefaultUser.ps1 chạy đúng (gỡ ứng dụng cài sẵn, chỉnh mặc định cho tài khoản mới) |
 | OOBE | Có mạng vẫn vào thẳng trang tạo tài khoản local; trang quyền riêng tư bị ẩn |
 | Đăng nhập đầu | Taskbar căn trái, ẩn Task View, định dạng ngày vi-VN; FirstLogon chép bước sau cài từ ISO vào `C:\AutoSetup`, tạo tác vụ, chạy SauCai |
-| Sau cài | Ổ dữ liệu: bỏ qua đúng (chỉ có C); winget sẵn sàng; cài Zalo, UniKey, 7-Zip, Foxit, UltraViewer, Chrome, VC++ |
+| Sau cài | Ổ dữ liệu: bỏ qua đúng (chỉ có C); winget sẵn sàng; cài Zalo, UniKey, 7-Zip, Foxit, UltraViewer, Chrome, VC++; Office bỏ qua (không có bộ cài); Windows Update không còn driver nào; báo cáo tự mở; tác vụ tự chạy tự xoá khi xong |
+| Máy hai ổ | Máy ảo 2 ổ (64 + 80 GB), cùng bản 3: WinPE báo "May co 2 o cung trong..." rồi khởi động lại; hai ổ vẫn trống (không bị ghi) |
 
 Lỗi tìm ra khi thử và đã sửa:
 

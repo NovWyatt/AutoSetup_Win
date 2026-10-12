@@ -34,8 +34,10 @@ function New-Config {
 $d = New-TestDir 'unattend'
 try {
     # ------------------------------------------------ cấu hình mặc định
+    # Bản sao cấu hình mặc định: không dính CauHinh.local.json của người chạy bài thử.
     $out = Join-Path $d 'mac-dinh'
-    $r = Invoke-Ps $tao @('-Ra', $out, '-KhongDung')
+    $cfgMd = New-Config (New-Item -ItemType Directory -Path (Join-Path $d 'cfg-mac-dinh') -Force).FullName
+    $r = Invoke-Ps $tao @('-CauHinh', $cfgMd, '-Ra', $out, '-KhongDung')
     Assert-Equal 0 $r.Code 'sinh với cấu hình mặc định'
     $files = @(Get-ChildItem -LiteralPath $out -Filter '*.xml' | Sort-Object Name)
     Assert-Equal 6 $files.Count 'đủ 6 file'
@@ -167,7 +169,7 @@ try {
     $r = Invoke-Ps $tao @('-CauHinh', $cfg4, '-Ra', (Join-Path $d 'sai'), '-KhongDung')
     Assert-Equal 1 $r.Code 'cấu hình sai: mã thoát 1'
     Assert-True ($r.Text -match 'banQuyen.cheDo') 'cấu hình sai: báo đúng khoá'
-    $r = Invoke-Ps $tao @('-Ra', (Join-Path $d 'sai2'), '-DiskId', 'abc', '-KhongDung')
+    $r = Invoke-Ps $tao @('-CauHinh', $cfgMd, '-Ra', (Join-Path $d 'sai2'), '-DiskId', 'abc', '-KhongDung')
     Assert-Equal 1 $r.Code '-DiskId không phải số: mã thoát 1'
 } finally { Remove-TestDir $d }
 
