@@ -43,17 +43,26 @@ Thử trên máy ảo trước khi dùng cho máy khách. Không cần Ventoy: I
   các thao tác này hay làm máy ảo đứng hẳn.
 - Đừng tắt máy ảo khi Windows đang cài (kể cả màn "Installing X%" sau lần khởi động lại đầu): lần bật sau Setup báo
   "The computer restarted unexpectedly or encountered an unexpected error", phải tạo lại ổ trống và cài lại từ đầu.
-- Trên máy dùng Hyper-V, lần Windows tự khởi động lại có khi không bao giờ xong: màn hình đen, ổ ảo không đọc ghi gì, các
-  nhân ảo quay vòng chờ (xem bằng `VBoxManage debugvm <tên> getregisters --cpu 1 rip`, địa chỉ đứng yên). Windows đã tắt
-  xong nên tắt hẳn máy ảo (`VBoxManage controlvm <tên> poweroff`) rồi bật lại là chạy tiếp, không hỏng gì. Khác với
-  trường hợp chỉ chậm: khi đó bộ đếm đọc ghi
-  (`VBoxManage debugvm <tên> statistics --pattern "/Public/Storage/AHCI0/Port0/Bytes*"`) vẫn tăng.
+- Trên máy dùng Hyper-V, máy ảo nhiều nhân có lúc kẹt hẳn, lúc Windows khởi động lại cũng như giữa chừng (lần 4 gặp 3
+  lần: giữa specialize, hai lần trong OOBE): màn hình đen, ổ ảo không đọc ghi gì, các nhân đứng ở cùng một địa chỉ với
+  ngắt bị tắt (`VBoxManage debugvm <tên> getregisters --cpu <0..3> rip rflags`, đọc hai lần vẫn y nguyên), `Logs\VBox.log`
+  ghi liên tục "TM: Giving up catch-up attempt". Khác với trường hợp chỉ chậm: khi đó bộ đếm đọc ghi
+  (`VBoxManage debugvm <tên> statistics --pattern "/Public/Storage/AHCI0/Port0/Bytes*"`) vẫn tăng. Kẹt hẳn thì chỉ còn
+  cách tắt hẳn (`VBoxManage controlvm <tên> poweroff`) rồi bật lại. Lúc Windows đang khởi động lại hay đang specialize thì
+  Windows chạy tiếp, không hỏng gì. Giữa OOBE thì Windows hiện "Why did my PC restart?": bấm Next (gặp "Something went
+  wrong" mã OOBEZDP thì bấm Skip), OOBE chạy lại từ đầu và qua được.
+- Đã phải tắt hẳn vì kẹt thì trước khi bật lại, đặt máy ảo còn 1 nhân (`VBoxManage modifyvm <tên> --cpus 1`): Setup chỉ
+  đòi từ 2 nhân ở giai đoạn WinPE, Windows đã cài chạy được với 1 nhân. Lần 4 sau khi về 1 nhân không kẹt lần nào nữa
+  (chậm hơn).
 - Máy ảo có lúc khựng hơn 15 phút giữa chừng (màn hình đứng hình, ổ không đọc ghi), các nhân ảo nằm ở vòng nghỉ chờ ngắt.
   Hai lần đọc thanh ghi từng nhân (`VBoxManage debugvm <tên> getregisters --cpu <0..3> rip`) làm máy ảo chạy lại ngay.
 - RAM máy thật cần trống ít nhất 2 GB ngoài phần cho máy ảo; thiếu RAM thì máy ảo đứng từng lúc (đĩa ảo bị reset).
 - DNS của mạng NAT hay hỏng: `TaoMayAo.ps1` bật `--natdnshostresolver1 on`. Thiếu DNS thì OOBE chậm tới mức Windows
   khởi động lại OOBE ("Why did my PC restart?"), winget không tải được.
-- Màn hình máy ảo tắt sau vài phút không bấm gì: bấm Ctrl để sáng lại (đừng bấm Shift 5 lần: bật Sticky Keys).
+- Màn hình máy ảo tắt sau vài phút không bấm gì: bấm Ctrl để sáng lại (đừng bấm Shift 5 lần: bật Sticky Keys). Phím đầu
+  tiên chỉ làm sáng màn hình, không tới cửa sổ đang mở.
+- Windows vừa qua OOBE có mạng là Windows Update tải (lần 4 khoảng 1 GB) và cài ngay trong nền. Máy ảo ít nhân gần như
+  đứng: cửa sổ bước sau cài mất gần một giờ mới in dòng đầu. Chờ được, máy thật nhanh hơn nhiều.
 
 ## Kết quả lần thử 12/10/2026
 
@@ -94,12 +103,30 @@ Cùng cấu hình lần 2 (tên máy MAYTHU-03), code từ commit 9f4ac23.
 | Mục | Kết quả |
 |---|---|
 | FirstLogon | Ghi "tự đăng nhập: còn 4 lần cho các lần khởi động lại của bước sau cài" |
-| Bí mật LSA | Sau khi bước sau cài xong lượt, hive `SECURITY` không còn `DefaultPassword` (lần 2 còn). Vẫn còn `CachedDefaultPassword` (92 byte), chưa rõ Windows dùng vào việc gì |
+| Bí mật LSA | Sau khi bước sau cài xong lượt, hive `SECURITY` không còn `DefaultPassword` (lần 2 còn). Vẫn còn `CachedDefaultPassword` (92 byte, bản Windows giữ thêm cho tự đăng nhập): nay xoá luôn, xem lần 4 |
 | Báo cáo | Bản quyền ghi "chưa kích hoạt (Windows nhắc kích hoạt)" |
 | Chưa thử được | Lần này Windows Update không có driver nên bước sau cài không khởi động lại; chưa thấy tận mắt tự đăng nhập theo `AutoLogonCount` |
 
 Máy ảo: một lần hỏng giữa WinPE (Windows tự khởi động lại ở khoảng 10%, ổ chưa có file khởi động); 2 nhân lại đứng ở
 `DXE_AP`; lần khởi động lại trong OOBE lại treo, tắt hẳn rồi bật lại thì chạy tiếp.
+
+### Lần 4 (17–18/10/2026): xoá cả `CachedDefaultPassword`, tự đăng nhập sau khởi động lại
+
+Cùng cấu hình lần 2 (tên máy MAYTHU-04), code xoá cả hai bí mật LSA (cùng commit với mục này).
+
+| Mục | Kết quả |
+|---|---|
+| FirstLogon | Như lần 3: xoá `unattend.xml` trong Panther, đặt tên hiển thị "Kế toán", ghi "tự đăng nhập: còn 4 lần" |
+| Khởi động lại giữa chừng | Bước sau cài đứng ở bước 1 (xem dưới) nên khởi động lại bằng tay (Win+X > Shut down > Restart). Windows cài bản cập nhật đã tải, rồi tự đăng nhập `KeToan` không hỏi mật khẩu; tác vụ chạy lại SauCai, chạy hết 8 bước |
+| Dọn dẹp | `AutoAdminLogon` = 0, không còn `AutoLogonCount` và `DefaultPassword` trong registry; tác vụ tự xoá; hive `SECURITY` chỉ còn `DPAPI_SYSTEM`, `NL$KM`: hết cả `DefaultPassword` lẫn `CachedDefaultPassword`. Nhật ký không có cảnh báo xoá LSA |
+| Báo cáo | Như lần 3; UniKey, 7-Zip đã cài; Driver "Không còn gì cần cài" |
+
+Máy ảo: 4 nhân kẹt 3 lần (xem "Kinh nghiệm"), lần tắt giữa OOBE làm Windows hiện "Why did my PC restart?"; về 1 nhân thì
+hết kẹt.
+
+Chưa sửa: bước "Ổ dữ liệu là D" đứng 45 phút. Dịch vụ PushToInstall của Windows kẹt ở trạng thái START_PENDING nên các
+dịch vụ bật theo yêu cầu không bật được (smphost, cần cho `Get-Partition`; cả truy vấn WMI bộ đếm hiệu năng cũng đứng).
+Khởi động lại thì bước này qua ngay. Bước này chưa có giới hạn thời gian.
 
 Lỗi tìm ra khi thử và đã sửa:
 
@@ -118,8 +145,9 @@ Lỗi tìm ra khi thử và đã sửa:
 - Báo cáo ghi bản quyền "thông báo" (trạng thái Notification) khó hiểu: nay ghi "chưa kích hoạt (...)".
 - Bước Driver chạy lại sau khởi động chỉ ghi "Không còn gì cần cài", mất số driver đã cài ở vòng trước: nay ghi thêm tổng.
 - **Mật khẩu tài khoản còn trên máy giao khách:** Windows Setup cất mật khẩu tự đăng nhập trong bí mật LSA
-  `DefaultPassword`; bước sau cài chỉ đặt `AutoAdminLogon = 0` và xoá giá trị registry nên bí mật còn nguyên. Nay xoá cả
-  bí mật LSA (khi xong lượt, và ngay ở lần đăng nhập đầu với bản không có bước sau cài).
+  `DefaultPassword` (Windows giữ thêm bản `CachedDefaultPassword`); bước sau cài chỉ đặt `AutoAdminLogon = 0` và xoá giá
+  trị registry nên cả hai còn nguyên. Nay xoá cả hai bí mật LSA (khi xong lượt, và ngay ở lần đăng nhập đầu với bản
+  không có bước sau cài).
 - Số lần tự đăng nhập dựa vào lỗi của Windows: Windows cộng 1 vào `LogonCount` của unattend (tài liệu Microsoft ghi rõ),
   đặt 1 thành tự đăng nhập 2 lần, nên chỉ một lần khởi động lại của bước sau cài được tự đăng nhập. Nay FirstLogon ghi
   thẳng `AutoLogonCount` = 4 (bằng số lần khởi động lại tối đa của bước sau cài); lần khởi động lại để đổi tên máy

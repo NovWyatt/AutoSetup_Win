@@ -316,15 +316,18 @@ function Invoke-Step {
 }
 
 function Clear-AutoLogon {
-    # Tắt tự đăng nhập và xoá mật khẩu Windows lưu cho nó. Setup cất mật khẩu trong bí mật LSA "DefaultPassword":
-    # chỉ đặt AutoAdminLogon = 0 thì mật khẩu vẫn nằm trên máy giao khách (thử máy ảo 12/10/2026 thấy còn).
+    # Tắt tự đăng nhập và xoá mật khẩu Windows lưu cho nó. Setup cất mật khẩu trong bí mật LSA "DefaultPassword", Windows
+    # còn giữ một bản "CachedDefaultPassword": chỉ đặt AutoAdminLogon = 0 thì cả hai vẫn nằm trên máy giao khách (thử
+    # máy ảo 12/10 và 17/10/2026 thấy còn).
     $k = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
     try {
         Set-ItemProperty -LiteralPath $k -Name 'AutoAdminLogon' -Value '0' -ErrorAction Stop
         Remove-ItemProperty -LiteralPath $k -Name 'DefaultPassword', 'AutoLogonCount' -ErrorAction SilentlyContinue
     } catch { }
-    $code = try { Remove-LsaSecret 'DefaultPassword' } catch { -1 }
-    if ($code -notin 0, 2) { Write-Warn "Không xoá được mật khẩu tự đăng nhập Windows cất trong LSA (mã $code)." }
+    foreach ($name in 'DefaultPassword', 'CachedDefaultPassword') {
+        $code = try { Remove-LsaSecret $name } catch { -1 }
+        if ($code -notin 0, 2) { Write-Warn "Không xoá được mật khẩu tự đăng nhập Windows cất trong LSA ($name, mã $code)." }
+    }
 }
 
 function Start-KeepAwake {

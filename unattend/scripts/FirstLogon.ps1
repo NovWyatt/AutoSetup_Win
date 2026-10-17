@@ -67,12 +67,14 @@ public struct UnicodeString { public ushort Length; public ushort MaximumLength;
 
 function Disable-AutoLogon {
     # Không có bước sau cài cần khởi động lại: tắt tự đăng nhập ngay. Để nguyên thì Windows còn tự đăng nhập thêm một
-    # lần (Windows cộng 1 vào LogonCount của unattend) và mật khẩu nằm mãi trong bí mật LSA "DefaultPassword".
+    # lần (Windows cộng 1 vào LogonCount của unattend) và mật khẩu nằm mãi trong bí mật LSA "DefaultPassword" (cùng bản
+    # "CachedDefaultPassword").
     if (-not (Test-AutoLogon)) { return }
     try {
         Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon' -Value '0' -ErrorAction Stop
         Remove-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword', 'AutoLogonCount' -ErrorAction SilentlyContinue
-        Write-Log "đã tắt tự đăng nhập (xoá mật khẩu trong LSA: mã $(Remove-LsaSecret 'DefaultPassword'))"
+        $codes = foreach ($name in 'DefaultPassword', 'CachedDefaultPassword') { "$name $(Remove-LsaSecret $name)" }
+        Write-Log "đã tắt tự đăng nhập (xoá mật khẩu trong LSA, mã: $($codes -join ', '))"
     } catch { Write-Log "LỖI tắt tự đăng nhập: $($_.Exception.Message)" }
 }
 
