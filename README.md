@@ -122,7 +122,8 @@ Thử cả lượt cài trên máy ảo VirtualBox (không cần Ventoy, không 
   started an upgrade..." trước khi chạy bất cứ lệnh nào của file unattend. Bấm **No** để cài sạch, phần còn lại tự chạy.
 - Giao diện Windows (`ngonNgu.giaoDien`) phải là ngôn ngữ có trong ISO (ISO tiếng Anh thì để `en-US`).
 - Mật khẩu tài khoản tự tạo (`taiKhoan.cheDo: "tu-dong"`) nằm trong file unattend trên USB dạng base64 (che, không mã
-  hoá). Windows xoá bản trên máy ở lần đăng nhập đầu; USB thì giữ cẩn thận.
+  hoá). Trên máy: bản unattend Setup để lại bị xoá ở lần đăng nhập đầu; bản Windows cất cho tự đăng nhập (bí mật LSA)
+  bị xoá khi bước sau cài chạy xong lượt. USB thì giữ cẩn thận.
 - Không kích hoạt Windows, Office hộ: chỉ dùng key trong BIOS hoặc key/tài khoản của bạn.
 
 ## Nguồn tham khảo, giấy phép

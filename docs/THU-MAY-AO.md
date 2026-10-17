@@ -84,8 +84,8 @@ Cấu hình riêng: `tenMay` MAYTHU-02, `banQuyen` key-chung bản Pro, `taiKhoa
 | OOBE | Tự qua hết, tạo tài khoản `KeToan`, tự đăng nhập |
 | Đăng nhập đầu | FirstLogon.log đủ dấu tiếng Việt; đặt tên hiển thị "Kế toán" (đọc lại trong SAM đúng); xoá `unattend.xml` trong Panther (có mật khẩu); tạo tác vụ, chạy SauCai |
 | Sau cài | Chữ tiếng Việt trong cửa sổ đúng dấu; cài UniKey kèm lối tắt Start, Startup; cài 7-Zip; Windows Update cài 1 driver rồi tự khởi động lại sau 60 giây |
-| Sau khởi động lại | Windows tự đăng nhập lại; UniKey tự mở từ Startup; SauCai chạy tiếp (lần chạy 2) từ bước Driver tới Báo cáo; báo cáo tự mở |
-| Dọn dẹp | Tự đăng nhập đã tắt, không còn `DefaultPassword`; tác vụ tự xoá; ô tìm kiếm giữ chế độ biểu tượng (`SearchboxTaskbarMode` = 1) |
+| Sau khởi động lại | Windows tự đăng nhập lại (nhờ lỗi "+1" của LogonCount, xem dưới); UniKey tự mở từ Startup; SauCai chạy tiếp (lần chạy 2) từ bước Driver tới Báo cáo; báo cáo tự mở |
+| Dọn dẹp | Tự đăng nhập đã tắt, registry không còn `DefaultPassword`; tác vụ tự xoá; ô tìm kiếm giữ chế độ biểu tượng (`SearchboxTaskbarMode` = 1). Nhưng bí mật LSA `DefaultPassword` vẫn còn (đọc hive `SECURITY` trong ổ ảo): lỗi, đã sửa |
 
 Lỗi tìm ra khi thử và đã sửa:
 
@@ -103,3 +103,10 @@ Lỗi tìm ra khi thử và đã sửa:
   có thêm lệnh RunOnce đặt lại chế độ đã chọn.
 - Báo cáo ghi bản quyền "thông báo" (trạng thái Notification) khó hiểu: nay ghi "chưa kích hoạt (...)".
 - Bước Driver chạy lại sau khởi động chỉ ghi "Không còn gì cần cài", mất số driver đã cài ở vòng trước: nay ghi thêm tổng.
+- **Mật khẩu tài khoản còn trên máy giao khách:** Windows Setup cất mật khẩu tự đăng nhập trong bí mật LSA
+  `DefaultPassword`; bước sau cài chỉ đặt `AutoAdminLogon = 0` và xoá giá trị registry nên bí mật còn nguyên. Nay xoá cả
+  bí mật LSA (khi xong lượt, và ngay ở lần đăng nhập đầu với bản không có bước sau cài).
+- Số lần tự đăng nhập dựa vào lỗi của Windows: Windows cộng 1 vào `LogonCount` của unattend (tài liệu Microsoft ghi rõ),
+  đặt 1 thành tự đăng nhập 2 lần, nên chỉ một lần khởi động lại của bước sau cài được tự đăng nhập. Nay FirstLogon ghi
+  thẳng `AutoLogonCount` = 4 (bằng số lần khởi động lại tối đa của bước sau cài); lần khởi động lại để đổi tên máy
+  không còn bị tắt tự đăng nhập trước.

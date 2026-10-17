@@ -139,3 +139,32 @@ function Get-MachineInfo {
         bitLocker  = $bl
     }
 }
+
+function Remove-LsaSecret {
+    # Xoá một bí mật LSA (LsaStorePrivateData với dữ liệu NULL), cần quyền Admin. Windows Setup cất mật khẩu tự đăng
+    # nhập của unattend trong bí mật "DefaultPassword", không phải trong registry. Trả mã lỗi Win32: 0 đã xoá,
+    # 2 vốn không có, 5 không đủ quyền. FirstLogon.ps1 có bản sao của hàm này (script đó chạy một mình).
+    param([Parameter(Mandatory)] [string]$Name)
+    if (-not ('AutoSetup.Lsa' -as [type])) {
+        Add-Type -Namespace AutoSetup -Name Lsa -ErrorAction Stop -MemberDefinition @'
+[StructLayout(LayoutKind.Sequential)]
+public struct ObjectAttributes { public int Length; public IntPtr RootDirectory; public IntPtr ObjectName; public uint Attributes; public IntPtr SecurityDescriptor; public IntPtr SecurityQualityOfService; }
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+public struct UnicodeString { public ushort Length; public ushort MaximumLength; [MarshalAs(UnmanagedType.LPWStr)] public string Buffer; }
+[DllImport("advapi32.dll")] public static extern uint LsaOpenPolicy(IntPtr systemName, ref ObjectAttributes attributes, uint access, out IntPtr policy);
+[DllImport("advapi32.dll")] public static extern uint LsaStorePrivateData(IntPtr policy, ref UnicodeString keyName, IntPtr privateData);
+[DllImport("advapi32.dll")] public static extern uint LsaClose(IntPtr policy);
+[DllImport("advapi32.dll")] public static extern int LsaNtStatusToWinError(uint status);
+'@
+    }
+    $attr = New-Object AutoSetup.Lsa+ObjectAttributes
+    $attr.Length = [Runtime.InteropServices.Marshal]::SizeOf($attr)
+    $policy = [IntPtr]::Zero
+    $st = [AutoSetup.Lsa]::LsaOpenPolicy([IntPtr]::Zero, [ref]$attr, 0x000F0FFF, [ref]$policy)   # POLICY_ALL_ACCESS
+    if ($st -ne 0) { return [AutoSetup.Lsa]::LsaNtStatusToWinError($st) }
+    try {
+        $key = New-Object AutoSetup.Lsa+UnicodeString
+        $key.Buffer = $Name; $key.Length = [uint16]($Name.Length * 2); $key.MaximumLength = [uint16]($Name.Length * 2 + 2)
+        return [AutoSetup.Lsa]::LsaNtStatusToWinError([AutoSetup.Lsa]::LsaStorePrivateData($policy, [ref]$key, [IntPtr]::Zero))
+    } finally { [void][AutoSetup.Lsa]::LsaClose($policy) }
+}

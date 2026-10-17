@@ -43,7 +43,7 @@ $script:StateFile = Join-Path $script:Goc 'TrangThai.json'
 $script:ResultDir = Join-Path $script:Goc 'ket_qua'
 $script:ConfigDir = Join-Path (Split-Path -Parent $here) 'cau-hinh'
 $script:TaskName = 'AutoSetup-TiepTuc'
-$script:MaxReboots = 4
+$script:MaxReboots = 4   # FirstLogon.ps1 đặt số lần tự đăng nhập bằng con số này: đổi một chỗ thì đổi cả chỗ kia
 $script:Steps = @(
     [pscustomobject]@{ Id = 'o-du-lieu'; Ten = 'Ổ dữ liệu là D'; CanMang = $false }
     [pscustomobject]@{ Id = 'winget'; Ten = 'Chuẩn bị winget'; CanMang = $true }
@@ -316,12 +316,15 @@ function Invoke-Step {
 }
 
 function Clear-AutoLogon {
-    # Tắt tự đăng nhập và xoá mật khẩu Windows lưu cho nó (unattend đặt LogonCount = 1, phòng còn sót).
+    # Tắt tự đăng nhập và xoá mật khẩu Windows lưu cho nó. Setup cất mật khẩu trong bí mật LSA "DefaultPassword":
+    # chỉ đặt AutoAdminLogon = 0 thì mật khẩu vẫn nằm trên máy giao khách (thử máy ảo 12/10/2026 thấy còn).
     $k = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
     try {
         Set-ItemProperty -LiteralPath $k -Name 'AutoAdminLogon' -Value '0' -ErrorAction Stop
         Remove-ItemProperty -LiteralPath $k -Name 'DefaultPassword', 'AutoLogonCount' -ErrorAction SilentlyContinue
     } catch { }
+    $code = try { Remove-LsaSecret 'DefaultPassword' } catch { -1 }
+    if ($code -notin 0, 2) { Write-Warn "Không xoá được mật khẩu tự đăng nhập Windows cất trong LSA (mã $code)." }
 }
 
 function Start-KeepAwake {
@@ -401,7 +404,8 @@ function Invoke-Main {
     $failed = @($script:Steps | Where-Object { (Get-StepStatus $state $_.Id) -eq 'loi' })
     if (-not $ChayThu) {
         if (-not $pending.Count) { Unregister-ResumeTask }
-        Clear-AutoLogon
+        # Còn khởi động lại để đổi tên máy (ngay dưới): giữ tự đăng nhập cho lần đó, lượt chạy sau mới dọn.
+        if ($state.doiTenMay -ne $true) { Clear-AutoLogon }
     }
     Write-Head 'TỔNG KẾT'
     foreach ($s in $script:Steps) {

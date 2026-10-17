@@ -38,6 +38,11 @@ try {
     . (Join-Path $script:Repo 'sau-cai\SauCai.ps1')
     $env:AUTOSETUP_TEST_NAP = ''
 
+    # ---- xoá bí mật LSA: tên ngẫu nhiên không tồn tại nên không đổi gì trên máy chạy thử. 2 = không có (chạy Admin),
+    # 5 = không đủ quyền; 87 là khai báo struct sai.
+    $lsa = Remove-LsaSecret ('AutoSetup_Thu_' + [guid]::NewGuid().ToString('N'))
+    Assert-True ($lsa -in 2, 5) "Remove-LsaSecret gọi được LSA (mã $lsa)"
+
     # ---- chọn ứng dụng
     $apps = Read-AppList (Join-Path $script:Repo 'cau-hinh\UngDung.json')
     $sel = Select-Apps $apps
