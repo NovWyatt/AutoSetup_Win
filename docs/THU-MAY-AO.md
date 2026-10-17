@@ -87,6 +87,20 @@ Cấu hình riêng: `tenMay` MAYTHU-02, `banQuyen` key-chung bản Pro, `taiKhoa
 | Sau khởi động lại | Windows tự đăng nhập lại (nhờ lỗi "+1" của LogonCount, xem dưới); UniKey tự mở từ Startup; SauCai chạy tiếp (lần chạy 2) từ bước Driver tới Báo cáo; báo cáo tự mở |
 | Dọn dẹp | Tự đăng nhập đã tắt, registry không còn `DefaultPassword`; tác vụ tự xoá; ô tìm kiếm giữ chế độ biểu tượng (`SearchboxTaskbarMode` = 1). Nhưng bí mật LSA `DefaultPassword` vẫn còn (đọc hive `SECURITY` trong ổ ảo): lỗi, đã sửa |
 
+### Lần 3 (17/10/2026): kiểm phần xoá mật khẩu tự đăng nhập
+
+Cùng cấu hình lần 2 (tên máy MAYTHU-03), code từ commit 9f4ac23.
+
+| Mục | Kết quả |
+|---|---|
+| FirstLogon | Ghi "tự đăng nhập: còn 4 lần cho các lần khởi động lại của bước sau cài" |
+| Bí mật LSA | Sau khi bước sau cài xong lượt, hive `SECURITY` không còn `DefaultPassword` (lần 2 còn). Vẫn còn `CachedDefaultPassword` (92 byte), chưa rõ Windows dùng vào việc gì |
+| Báo cáo | Bản quyền ghi "chưa kích hoạt (Windows nhắc kích hoạt)" |
+| Chưa thử được | Lần này Windows Update không có driver nên bước sau cài không khởi động lại; chưa thấy tận mắt tự đăng nhập theo `AutoLogonCount` |
+
+Máy ảo: một lần hỏng giữa WinPE (Windows tự khởi động lại ở khoảng 10%, ổ chưa có file khởi động); 2 nhân lại đứng ở
+`DXE_AP`; lần khởi động lại trong OOBE lại treo, tắt hẳn rồi bật lại thì chạy tiếp.
+
 Lỗi tìm ra khi thử và đã sửa:
 
 - **Mất dấu tiếng Việt trong script nhúng:** Windows Setup chép file trả lời vào `C:\Windows\Panther\unattend.xml` và đổi
