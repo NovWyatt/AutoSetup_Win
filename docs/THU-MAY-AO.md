@@ -53,7 +53,9 @@ Thử trên máy ảo trước khi dùng cho máy khách. Không cần Ventoy: I
   wrong" mã OOBEZDP thì bấm Skip), OOBE chạy lại từ đầu và qua được.
 - Đã phải tắt hẳn vì kẹt thì trước khi bật lại, đặt máy ảo còn 1 nhân (`VBoxManage modifyvm <tên> --cpus 1`): Setup chỉ
   đòi từ 2 nhân ở giai đoạn WinPE, Windows đã cài chạy được với 1 nhân. Lần 4 sau khi về 1 nhân không kẹt lần nào nữa
-  (chậm hơn).
+  (chậm hơn). Lần 5 chuyển sớm hơn, ngay lần khởi động lại cuối WinPE: khi `Logs\VBox.log` vừa ghi "Changing the VM
+  state from 'RUNNING' to 'RESETTING'" (máy ảo còn ở firmware, chưa nạp Windows) thì tắt hẳn, đặt 1 nhân, bật lại. Setup
+  chạy tiếp bình thường, không kẹt lần nào.
 - Máy ảo có lúc khựng hơn 15 phút giữa chừng (màn hình đứng hình, ổ không đọc ghi), các nhân ảo nằm ở vòng nghỉ chờ ngắt.
   Hai lần đọc thanh ghi từng nhân (`VBoxManage debugvm <tên> getregisters --cpu <0..3> rip`) làm máy ảo chạy lại ngay.
 - RAM máy thật cần trống ít nhất 2 GB ngoài phần cho máy ảo; thiếu RAM thì máy ảo đứng từng lúc (đĩa ảo bị reset).
@@ -61,6 +63,14 @@ Thử trên máy ảo trước khi dùng cho máy khách. Không cần Ventoy: I
   khởi động lại OOBE ("Why did my PC restart?"), winget không tải được.
 - Màn hình máy ảo tắt sau vài phút không bấm gì: bấm Ctrl để sáng lại (đừng bấm Shift 5 lần: bật Sticky Keys). Phím đầu
   tiên chỉ làm sáng màn hình, không tới cửa sổ đang mở.
+- Màn "Why did my PC restart?" của OOBE (lần 5): phím gửi bằng `VBoxManage controlvm <tên> keyboardputscancode` không tới
+  nút Next, màn hình tắt rồi bấm Ctrl cũng không sáng (ảnh chụp đen cả giờ). Bấm Shift+F10 (mở cmd), gõ `exit`, Enter;
+  sau đó Enter mới bấm được Next. Gặp "Something went wrong" mã OOBEZDP thì Shift+Tab (chọn Skip) rồi Enter.
+- Tắt máy ảo khi đã xong: `VBoxManage controlvm <tên> acpipowerbutton` không làm Windows tắt (lần 5). Bấm Win+R
+  (`keyboardputscancode e0 5b 13 93 e0 db`), gõ `shutdown /s /f /t 5` (`keyboardputstring`), Enter.
+- Xem máy ảo đang ở đâu khi màn hình không nói gì: đọc thẳng file `.vdi` (thư viện Python `dissect`, chỉ đọc) được cả
+  lúc máy ảo đang chạy, ví dụ `C:\Windows\Panther\setupact.log`, `C:\Windows\Setup\State\State.ini`. Hive registry
+  đọc lúc đó (hay ngay sau khi tắt) có thể chưa gộp nhật ký `.LOG1/.LOG2`, `dissect.regf` báo lỗi.
 - Windows vừa qua OOBE có mạng là Windows Update tải (lần 4 khoảng 1 GB) và cài ngay trong nền. Máy ảo ít nhân gần như
   đứng: cửa sổ bước sau cài mất gần một giờ mới in dòng đầu. Chờ được, máy thật nhanh hơn nhiều.
 
@@ -126,7 +136,8 @@ hết kẹt.
 
 Bước "Ổ dữ liệu là D" đứng 45 phút: dịch vụ PushToInstall của Windows kẹt ở trạng thái START_PENDING nên các dịch vụ
 bật theo yêu cầu không bật được (smphost, cần cho `Get-Partition`; cả truy vấn WMI bộ đếm hiệu năng cũng đứng). Khởi
-động lại thì bước này qua ngay. Đã sửa, xem mục cuối danh sách dưới (chưa thử lại trên máy ảo).
+động lại thì bước này qua ngay. Đã sửa, xem mục cuối danh sách dưới (lần 5 thử lại: chạy đúng khi dịch vụ bình thường,
+chưa gặp lại cảnh đứng).
 
 Lỗi tìm ra khi thử và đã sửa:
 
@@ -158,3 +169,29 @@ Lỗi tìm ra khi thử và đã sửa:
   (5 phút) thì dừng tiến trình đó. Bước `o-du-lieu` quá giờ thì khởi động lại máy một lần rồi chạy lại (lúc đó các bộ
   cài cần dịch vụ khác, như bộ cài `.msi`, cũng có thể đứng); sau khởi động lại vẫn đứng thì báo lỗi, các bước sau vẫn
   chạy, thử lại bằng `CHAY_LAI.bat -Chi o-du-lieu`. Báo cáo ghi "không đọc được" ở mục ổ đĩa thay vì đứng.
+
+### Lần 5 (18/10/2026): giới hạn thời gian đọc ổ đĩa, tự tải Office, ứng dụng mặc định
+
+Code commit 57cde99. Cấu hình của repo (ứng dụng mặc định EVKey, UltraViewer, Chrome; Office theo `cau-hinh\Office.xml`,
+USB không có bộ cài Office) cộng cấu hình riêng như lần 2: tên máy MAYTHU-05, key chung bản Pro, tài khoản tự tạo
+`KeToan`. Thu2 tạo lại ổ trống 64 GB, 4 nhân trong WinPE, 1 nhân từ lần khởi động lại đầu, 3,5 GB RAM.
+
+| Mục | Kết quả |
+|---|---|
+| Ổ dữ liệu là D | In "Đọc phân vùng ổ đĩa (dừng nếu quá 5 phút)...", cả bước xong trong khoảng 20 giây: bỏ qua đúng (chỉ có ổ C) |
+| Ứng dụng | UltraViewer, Chrome cài xong. **EVKey không cài được**: winget báo "Installer hash does not match; this cannot be overridden when running as admin" (0x8A150011), thử lần 2 cũng vậy; Start, Startup không có lối tắt EVKey (xem dưới) |
+| Office | Tải `setup.exe` (Office Deployment Tool 16.0.20326.20112) vào `C:\AutoSetup\office`; chép file ra máy thật kiểm lại: chữ ký Microsoft Corporation hợp lệ. Cài theo Office.xml mất 23 phút. Nhật ký ODT (`C:\Windows\Temp\MAYTHU-05-*.log`) ghi `ExcludedApps` = access, bing, groove, lync, onedrive, onenote, outlook, outlookforwindows, publisher, teams; thư mục `Office16` chỉ có WINWORD, EXCEL, POWERPNT (không có Outlook, OneNote, Access, Publisher); Start có Word, Excel, PowerPoint; không có OneDrive, Teams trong Program Files |
+| Báo cáo | Có mục Ổ ĐĨA (C và hai ổ CD của ISO) và BITLOCKER, không có dòng "không đọc được"; mục ỨNG DỤNG ghi lỗi EVKey |
+| Các bước khác | winget v1.11.510; Driver không còn gì cần cài; cập nhật Windows, đổi tên máy bỏ qua đúng cấu hình. Bước sau cài chạy một lượt 50 phút, không khởi động lại |
+| Chưa kiểm | Phần dọn tự đăng nhập (đã kiểm ở lần 4): hive SOFTWARE đọc ra chưa gộp nhật ký, `dissect.regf` không đọc được |
+
+EVKey lỗi không do AutoSetup: gói winget `lamquangminh.EVKey` tải
+`https://github.com/lamquangminh/EVKey/releases/download/Release/EVKey.zip`, một tag `Release` cố định. Tác giả tải lên
+lại file này ngày 18/6/2026 (SHA256 nay là `59ac1cee…`, đúng digest GitHub ghi) trong khi manifest vẫn giữ `836fb7d7…`;
+winget chạy quyền admin không cho bỏ qua hash. Chừng nào manifest chưa sửa thì máy nào cũng thiếu bộ gõ, và mỗi lần tác
+giả tải lên lại thì lỗi lặp lại. Đã sửa ở commit f88f46d (sau lần thử này): winget không cài được thì tải thẳng
+EVKey.zip từ bản phát hành GitHub, chỉ cài khi SHA256 khớp digest GitHub ghi. Phần này chưa chạy trên máy ảo.
+
+Máy ảo: WinPE mất 68 phút (RAM máy thật chỉ còn 0,4–2 GB trống, máy ảo bị đẩy một phần ra pagefile). Giữa OOBE Windows
+tự khởi động lại rồi hiện "Why did my PC restart?" (không ai tắt máy ảo); mất gần một giờ vì phím không tới nút Next
+(cách xử lý ở "Kinh nghiệm"), sau đó gặp "Something went wrong" OOBEZDP, bấm Skip thì qua và tự đăng nhập `KeToan`.
