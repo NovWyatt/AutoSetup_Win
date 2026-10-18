@@ -7,6 +7,7 @@ out/
 
 # Cấu hình riêng từng người dùng (ghi đè CauHinh.json), mật khẩu
 cau-hinh/*.local.json
+cau-hinh/*.local.xml
 *.matkhau.txt
 
 # Kết quả, nhật ký, báo cáo chạy trên máy khách (có tên máy, tên tài khoản)

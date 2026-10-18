@@ -71,6 +71,13 @@ function Find-UsbRoot {
     return $null
 }
 
+function Format-Seconds {
+    # Thời hạn dễ đọc: 1800 -> '30 phút', 90 -> '90 giây'.
+    param([int]$Seconds)
+    if ($Seconds % 60) { return "$Seconds giây" }
+    return "$($Seconds / 60) phút"
+}
+
 function Format-ExitCode {
     # Mã thoát kèm dạng hex (mã của winget, Windows Update là số âm 0x8A15...).
     param([int]$Code)

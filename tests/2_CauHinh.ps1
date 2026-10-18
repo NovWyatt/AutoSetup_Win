@@ -34,6 +34,7 @@ Test-Bad 'oDia.dungLuongC_GB' 10 'oDia.dungLuongC_GB'
 Test-Bad 'tinhChinh.timKiem' 'to' 'tinhChinh.timKiem'
 Test-Bad 'sauCai.thuMucCai' 'Program Files' 'sauCai.thuMucCai'
 Test-Bad 'sauCai.choCaiPhut' 0 'sauCai.choCaiPhut'
+Test-Bad 'sauCai.choODiaPhut' 0 'sauCai.choODiaPhut'
 Test-Bad 'ventoy.macDinh' 9 'ventoy.macDinh'
 $c = Read-JsonFile $cfgPath
 $c.taiKhoan.cheDo = 'tu-dong'; $c.taiKhoan.ten = 'Administrator'
@@ -81,5 +82,14 @@ Assert-True (-not @($apps | Where-Object { ($_.loiTat -and $_.loiTat -notmatch '
 foreach ($g in @($apps | Where-Object { $_.nhom } | Group-Object nhom)) {
     Assert-True (@($g.Group | Where-Object { $_.macDinh }).Count -le 1) "nhóm $($g.Name) có tối đa một ứng dụng mặc định"
 }
+
+# ---- cấu hình Office: chỉ Word, Excel, PowerPoint, cài im lặng
+$ox = New-Object Xml.XmlDocument
+$ox.Load((Join-Path $script:Repo 'cau-hinh\Office.xml'))
+$ex = @($ox.SelectNodes('/Configuration/Add/Product/ExcludeApp') | ForEach-Object { $_.GetAttribute('ID') })
+foreach ($a in 'Access', 'Groove', 'Lync', 'OneDrive', 'OneNote', 'Outlook', 'OutlookForWindows', 'Publisher', 'Teams') { Assert-True ($a -in $ex) "Office.xml không cài $a" }
+foreach ($a in 'Word', 'Excel', 'PowerPoint') { Assert-True ($a -notin $ex) "Office.xml cài $a" }
+Assert-Equal 'None' $ox.Configuration.Display.Level 'Office.xml cài im lặng'
+Assert-True (-not $ox.SelectSingleNode('//Product[@PIDKEY]')) 'Office.xml trong repo không có khoá sản phẩm'
 
 Complete-Test

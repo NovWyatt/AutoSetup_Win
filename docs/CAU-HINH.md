@@ -13,7 +13,8 @@ tượng được gộp theo từng khoá; mảng thì thay cả mảng. Khoá b
 }
 ```
 
-Danh sách ứng dụng riêng: `cau-hinh/UngDung.local.json` (thay cả file `UngDung.json` khi chép lên USB).
+Danh sách ứng dụng riêng: `cau-hinh/UngDung.local.json` (thay cả file `UngDung.json` khi chép lên USB). Cấu hình
+Office riêng (Product ID khác, có khoá): `cau-hinh/Office.local.xml` (thay cả file `Office.xml`).
 
 ## `ngonNgu`
 
@@ -98,12 +99,13 @@ gạch ngang); tên cố định chỉ hợp khi USB dùng cho một máy.
 | Khoá | Mặc định | Ý nghĩa |
 |---|---|---|
 | `ungDung` | `true` | Cài ứng dụng trong `UngDung.json` |
-| `office` | `true` | Cài Office khi USB có `\AutoSetup\office\setup.exe` |
+| `office` | `true` | Cài Office: bộ cài trên USB (`\AutoSetup\office\setup.exe` + `.xml`) nếu có, không thì tải Office Deployment Tool của Microsoft và cài theo `Office.xml` (cần mạng) |
 | `driver` | `true` | Driver trên USB và Windows Update |
 | `capNhatWindows` | `false` | Cài bản cập nhật Windows (lâu, có thể khởi động lại nhiều lần) |
 | `oDuLieuLaD` | `true` | Đưa phân vùng dữ liệu về chữ D |
 | `choMangPhut` | `10` | Đợi mạng tối đa bao nhiêu phút ở lần chạy đầu (lần sau 2 phút) |
 | `choCaiPhut` | `30` | Mỗi ứng dụng cài quá bao nhiêu phút thì coi là treo: dừng bộ cài, báo lỗi, cài ứng dụng tiếp theo |
+| `choODiaPhut` | `5` | Lệnh đọc ổ đĩa của Windows (dò phân vùng ở bước `o-du-lieu`, danh sách ổ và BitLocker trong báo cáo) chạy quá bao nhiêu phút thì dừng. Lệnh này đứng khi Windows không bật được dịch vụ Storage; khởi động lại thường hết, nên bước `o-du-lieu` quá giờ thì khởi động lại máy một lần, sau đó vẫn đứng thì báo lỗi và chạy tiếp các bước sau |
 | `thuMucCai` | trống | Thư mục cài riêng (vd `D:\Program Files`) cho ứng dụng có `doiThuMuc: true`; trống là chỗ mặc định |
 | `tuKhoiDongLai` | `true` | Cần khởi động lại thì tự khởi động lại sau 60 giây |
 
@@ -121,4 +123,13 @@ Mỗi ứng dụng: `khoa` (tên ngắn), `id` (mã gói winget, kiểm bằng `
 `macDinh` (`true` là cài), `nhom` (cùng nhóm chỉ cài một, cái đứng trước được ưu tiên: bộ gõ, trình đọc PDF),
 `doiThuMuc` (bộ cài nhận được thư mục cài riêng), `loiTat` (ứng dụng portable như UniKey, EVKey: winget chỉ giải nén,
 không tạo lối tắt; ghi tên file chạy để bước sau cài tạo lối tắt trong Start), `tuChay` (cùng `loiTat`: thêm lối tắt vào
-Startup để chạy cùng Windows, mở luôn sau khi cài), `ghiChu`.
+Startup để chạy cùng Windows, mở luôn sau khi cài), `ghiChu`. Mặc định cài EVKey, UltraViewer, Chrome; các ứng dụng
+khác (Zalo, UniKey, 7-Zip, Foxit, Visual C++...) có sẵn trong danh sách, đổi `macDinh` thành `true` để cài.
+
+## `Office.xml`
+
+Cấu hình [Office Deployment Tool](https://learn.microsoft.com/microsoft-365-apps/deploy/office-deployment-tool-configuration-options).
+Mặc định: Microsoft 365 Apps (`O365BusinessRetail`) 64-bit, giao diện tiếng Việt kèm tiếng Anh, chỉ Word, Excel,
+PowerPoint (các ứng dụng khác nằm trong `ExcludeApp`: xoá dòng của ứng dụng nào thì ứng dụng đó được cài), cài im lặng,
+không tự kích hoạt. Kích hoạt bằng đăng nhập tài khoản Microsoft 365 có giấy phép. Office mua đứt hay bản volume: đổi
+`Product ID`, `Channel`, thêm `PIDKEY` trong `Office.local.xml`.

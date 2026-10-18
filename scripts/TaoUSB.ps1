@@ -4,8 +4,10 @@
   Trên USB sau khi chạy:
     \AutoSetup\unattend\*.xml   6 file unattend (sinh lại bằng TaoUnattend.ps1, trừ khi -KhongSinhLai)
     \AutoSetup\sau-cai\         bước sau cài (SauCai.ps1, CHAY_LAI.bat)
-    \AutoSetup\cau-hinh\        CauHinh.json (đã gộp CauHinh.local.json), UngDung.json (hoặc UngDung.local.json)
-    \AutoSetup\office\          bạn tự thêm: Office Deployment Tool (setup.exe + cau-hinh.xml, có thể kèm Office\Data)
+    \AutoSetup\cau-hinh\        CauHinh.json (đã gộp CauHinh.local.json), UngDung.json (hoặc UngDung.local.json),
+                                Office.xml (hoặc Office.local.xml): Office bước sau cài tải từ Microsoft
+    \AutoSetup\office\          không bắt buộc: Office Deployment Tool (setup.exe + cau-hinh.xml, kèm Office\Data để
+                                cài không cần mạng); có thì dùng thay cho Office.xml
     \AutoSetup\drivers\         bạn tự thêm: driver dạng .inf (vd thư mục xuất bằng pnputil /export-driver)
     \AutoSetup\ket_qua\         báo cáo của các máy đã cài
     \ventoy\ventoy.json         thêm mục auto_install cho các ISO Windows trên USB; giữ nguyên các phần khác,
@@ -123,6 +125,9 @@ try {
     $as = Join-Path $root 'AutoSetup'
     $appList = Join-Path $cfgDir 'UngDung.local.json'
     if (-not (Test-Path -LiteralPath $appList)) { $appList = Join-Path $cfgDir 'UngDung.json' }
+    $officeXml = Join-Path $cfgDir 'Office.local.xml'
+    if (-not (Test-Path -LiteralPath $officeXml)) { $officeXml = Join-Path $cfgDir 'Office.xml' }
+    if (-not (Test-Path -LiteralPath $officeXml)) { $officeXml = '' }
     $pattern = [string](Get-ConfigValue $cfg 'ventoy.locTenIso' '(?i)win')
     $isos = Find-WindowsIsos $root $pattern
     $isoPaths = @($isos | ForEach-Object { Get-VentoyPath $root $_.FullName })
@@ -130,7 +135,7 @@ try {
     Write-Head 'Việc sẽ làm'
     Write-Plan "Chép 6 file unattend vào $as\unattend"
     Write-Plan "Chép bước sau cài vào $as\sau-cai"
-    Write-Plan "Ghi cấu hình vào $as\cau-hinh (UngDung từ $(Split-Path -Leaf $appList))"
+    Write-Plan ("Ghi cấu hình vào $as\cau-hinh (UngDung từ $(Split-Path -Leaf $appList){0})" -f $(if ($officeXml) { ", Office từ $(Split-Path -Leaf $officeXml)" }))
     Write-Plan "Tạo $as\office, $as\drivers, $as\ket_qua nếu chưa có"
     if ($isoPaths.Count) { foreach ($p in $isoPaths) { Write-Plan "ventoy.json: menu cài tự động cho $p" } }
     else { Write-Warn "Chưa có ISO Windows nào trên USB khớp '$pattern'. Chép ISO lên USB rồi chạy lại để thêm menu cài tự động." }
@@ -143,8 +148,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'sau-cai') -Destination (Join-Path $as 'sau-cai') -Recurse -Force
     Write-JsonFile (Join-Path $as 'cau-hinh\CauHinh.json') $cfg
     Copy-Item -LiteralPath $appList -Destination (Join-Path $as 'cau-hinh\UngDung.json') -Force
+    if ($officeXml) { Copy-Item -LiteralPath $officeXml -Destination (Join-Path $as 'cau-hinh\Office.xml') -Force }
     $notes = @{
-        'office\DOC-TRUOC.txt'  = "Đặt Office Deployment Tool vào đây để bước sau cài tự cài Office:`r`n  setup.exe      (tải ODT: https://www.microsoft.com/download/details.aspx?id=49117)`r`n  cau-hinh.xml   (tạo tại https://config.office.com, có thể sửa từ docs\office-mau.xml trong repo)`r`n  Office\Data    (không bắt buộc: chạy 'setup.exe /download cau-hinh.xml' để cài không cần mạng)`r`nKhông có setup.exe thì bước Office được bỏ qua.`r`n"
+        'office\DOC-TRUOC.txt'  = "Không bắt buộc. Thư mục này trống thì bước sau cài tự tải Office Deployment Tool của Microsoft và cài Office theo`r`n\AutoSetup\cau-hinh\Office.xml (cần mạng). Muốn cài Office không cần mạng thì đặt vào đây:`r`n  setup.exe      (tải ODT: https://www.microsoft.com/download/details.aspx?id=49117)`r`n  cau-hinh.xml   (chép từ cau-hinh\Office.xml trong repo, hoặc tạo tại https://config.office.com)`r`n  Office\Data    (chạy 'setup.exe /download cau-hinh.xml' một lần)`r`n"
         'drivers\DOC-TRUOC.txt' = "Đặt driver dạng .inf vào đây (mọi thư mục con), bước sau cài nạp bằng pnputil /add-driver /subdirs /install.`r`nVd: xuất driver máy cũ bằng 'pnputil /export-driver * <thư mục>'. Driver còn thiếu được tải tiếp từ Windows Update.`r`n"
     }
     foreach ($k in $notes.Keys) { [IO.File]::WriteAllText((Join-Path $as $k), $notes[$k], (New-Object Text.UTF8Encoding $true)) }

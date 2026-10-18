@@ -1,8 +1,9 @@
 ﻿<#
   Bước sau cài: chọn ứng dụng theo nhóm, cài bằng winget giả (đã có, cài được, cài lỗi, thư mục cài riêng, lối tắt
-  cho ứng dụng portable), trạng
-  thái đọc ghi lại được, đổi tên máy, rồi chạy thử cả lượt (-ChayThu) trên bản sao trong thư mục tạm.
-  KiemThu: doc-may (lượt chạy thử đọc ổ đĩa, thiết bị của máy thật, không đổi gì)
+  cho ứng dụng portable), lệnh đọc ổ đĩa ở tiến trình riêng dừng khi quá giờ (giả lệnh đứng), bước o-du-lieu quá giờ
+  thì khởi động lại một lần, Office tải theo Office.xml (chạy thử), trạng thái đọc ghi lại được, đổi tên máy, rồi chạy
+  thử cả lượt (-ChayThu) trên bản sao trong thư mục tạm.
+  KiemThu: doc-may (đọc ổ đĩa, thiết bị của máy thật, không đổi gì)
 #>
 . (Join-Path $PSScriptRoot 'lib\KiemThu.ps1')
 
@@ -111,6 +112,59 @@ try {
     Assert-True ($sec -lt 20) "bộ cài treo: dừng sau thời hạn, không thử lại ($sec giây)"
     Assert-Equal 0 @(Get-CimInstance Win32_Process -Filter "Name='PING.EXE'" | Where-Object { $_.CommandLine -match '-n 31' }).Count 'bộ cài treo: dừng cả tiến trình con'
 
+    # ---- lệnh đọc ổ đĩa: chạy ở tiến trình riêng (đọc ổ của máy thật, không đổi gì), đứng quá giờ thì dừng
+    $r = Invoke-StorageFunction 'Get-DiskInfo' -TimeoutSeconds 120
+    Assert-True (-not $r.QuaGio -and -not $r.Loi) "đọc ổ đĩa ở tiến trình riêng $($r.Loi)"
+    Assert-Equal 1 @($r.KetQua.oDia | Where-Object { $_.o -eq $env:SystemDrive }).Count 'đọc ổ đĩa: trả về danh sách ổ, có ổ Windows'
+    $r = Invoke-StorageFunction 'Ham-KhongCo' -TimeoutSeconds 120
+    Assert-True (-not $r.QuaGio -and $r.Loi -match 'Ham-KhongCo') "hàm lỗi: trả lỗi ($($r.Loi))"
+    $env:AUTOSETUP_TEST_TREO_ODIA = '1'
+    $t0 = Get-Date
+    $r = Invoke-StorageFunction 'Get-DiskInfo' -TimeoutSeconds 3
+    $sec = [int]((Get-Date) - $t0).TotalSeconds
+    Assert-True ($r.QuaGio -and $sec -lt 20) "lệnh đứng: dừng sau thời hạn ($sec giây)"
+    Assert-True ($r.Pid -and -not (Get-Process -Id $r.Pid -ErrorAction SilentlyContinue)) 'lệnh đứng: tiến trình con đã bị dừng'
+    $t0 = Get-Date
+    $o = Invoke-DataDriveLetter -TimeoutSeconds 3
+    Assert-True ($o.QuaGio -and ((Get-Date) - $t0).TotalSeconds -lt 3) 'đã đứng một lần: lần sau trong lượt trả quá giờ ngay'
+    Assert-Equal 'loi' $o.TrangThai 'dò phân vùng quá giờ: lỗi'
+    Assert-True ($o.GhiChu -match 'quá 3 giây') "dò phân vùng quá giờ: ghi chú ($($o.GhiChu))"
+    $info = Get-MachineInfo -DiskTimeoutSeconds 3
+    Assert-True ($info.oDiaLoi -match 'quá 3 giây' -and -not @($info.oDia).Count) 'báo cáo: ghi không đọc được ổ đĩa'
+    Assert-Equal $env:COMPUTERNAME $info.tenMay 'báo cáo: vẫn có thông tin máy'
+    $env:AUTOSETUP_TEST_TREO_ODIA = ''
+    $script:StorageTreo = $false
+
+    # ---- bước o-du-lieu quá giờ: khởi động lại một lần, sau đó báo lỗi để các bước sau vẫn chạy
+    function Invoke-DataDriveLetter { param([int]$TimeoutSeconds, [switch]$DryRun) [pscustomobject]@{ TrangThai = 'loi'; QuaGio = $true; GhiChu = 'Đứng.' } }
+    $ChayThu = $false
+    $st = New-State
+    $o = Invoke-StepODuLieu $st
+    Assert-Equal 'cho-khoi-dong-lai' $o[0] 'quá giờ lần đầu: chờ khởi động lại'
+    Set-StepResult $st 'o-du-lieu' $o[0] $o[1]
+    $o = Invoke-StepODuLieu $st
+    Assert-Equal 'loi' $o[0] 'sau khởi động lại vẫn quá giờ: lỗi'
+    Assert-True ($o[1] -match 'CHAY_LAI\.bat -Chi o-du-lieu') 'ghi chú chỉ cách chạy lại'
+    $ChayThu = $true
+    Assert-Equal 'loi' (Invoke-StepODuLieu (New-State))[0] 'chạy thử quá giờ: không khởi động lại'
+
+    # ---- Office: USB không có bộ cài thì tải ODT của Microsoft, cài theo cau-hinh\Office.xml
+    function Test-OfficeInstalled { $false }   # máy chạy bài thử có Office cũng không đổi kết quả
+    $ox = Join-Path $script:Repo 'cau-hinh\Office.xml'
+    $wd = Join-Path $d 'office'
+    Assert-Equal 'bo-qua' (Install-Office -UsbRoot '' -ConfigXml (Join-Path $d 'khong-co.xml') -WorkDir $wd -HasInternet $true).TrangThai 'không có bộ cài, không có Office.xml: bỏ qua'
+    Assert-Equal 'cho-mang' (Install-Office -UsbRoot '' -ConfigXml $ox -WorkDir $wd -HasInternet $false).TrangThai 'tải Office mà chưa có mạng: chờ mạng'
+    Assert-Equal 'chay-thu' (Install-Office -UsbRoot '' -ConfigXml $ox -WorkDir $wd -HasInternet $true -DryRun).TrangThai 'tải Office, chạy thử'
+    Assert-True (-not (Test-Path $wd)) 'chạy thử: không tải setup.exe'
+    $ou = Join-Path $d 'usb-office'
+    New-Item -ItemType Directory -Path (Join-Path $ou 'AutoSetup\office') -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $ou 'AutoSetup\office\setup.exe'), '')
+    Assert-Equal 'loi' (Install-Office -UsbRoot $ou -ConfigXml $ox -WorkDir $wd -HasInternet $true).TrangThai 'USB có setup.exe thiếu .xml: lỗi, không tải thay'
+    Assert-True (Test-MicrosoftSignature (Join-Path $env:SystemRoot 'System32\notepad.exe')) 'chữ ký Microsoft: nhận file của Windows'
+    $fakeExe = Join-Path $d 'gia.exe'
+    [IO.File]::WriteAllText($fakeExe, 'MZ')
+    Assert-True (-not (Test-MicrosoftSignature $fakeExe)) 'chữ ký Microsoft: từ chối file không ký'
+
     # ---- trạng thái
     $ChayThu = $false
     $st = New-State
@@ -154,11 +208,12 @@ try {
     Assert-True ($r.Text -match 'TỔNG KẾT') 'chạy thử cả lượt: có tổng kết'
     Assert-True ($r.Text -match 'Chuẩn bị winget\s+chờ mạng') 'không mạng: winget chờ mạng'
     Assert-True ($r.Text -match 'Driver\s+bỏ qua') 'driver tắt trong cấu hình: bỏ qua'
+    Assert-True ($r.Text -match 'Ổ dữ liệu là D\s+(xong|bỏ qua|chạy thử)') 'dò phân vùng ở tiến trình riêng: không lỗi'
     Assert-True (-not (Test-Path (Join-Path $env:AUTOSETUP_GOC 'TrangThai.json'))) 'chạy thử: không ghi trạng thái'
     $r = Invoke-Ps (Join-Path $as 'sau-cai\SauCai.ps1') @('-ChayThu', '-KhongDung', '-Chi', 'khong-co')
     Assert-Equal 1 $r.Code 'bước không có: mã 1'
 } finally {
-    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP', 'AUTOSETUP_PORTABLE', 'AUTOSETUP_LOITAT') { Set-Item -Path "env:$v" -Value '' }
+    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP', 'AUTOSETUP_PORTABLE', 'AUTOSETUP_LOITAT', 'AUTOSETUP_TEST_TREO_ODIA') { Set-Item -Path "env:$v" -Value '' }
     Remove-TestDir $d
 }
 

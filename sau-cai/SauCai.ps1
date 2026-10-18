@@ -3,10 +3,11 @@
   chạy tiếp sau mỗi lần khởi động lại cho tới khi xong; chạy lại bằng tay bằng CHAY_LAI.bat.
 
   Các bước (theo thứ tự; bước đã xong không chạy lại, trừ khi -LamLai hoặc -Chi):
-    o-du-lieu         đưa phân vùng dữ liệu về chữ D (USB hay chiếm D lúc cài)            sauCai.oDuLieuLaD
+    o-du-lieu         đưa phân vùng dữ liệu về chữ D (USB hay chiếm D lúc cài)            sauCai.oDuLieuLaD, choODiaPhut
     winget            bảo đảm winget chạy được (đăng ký App Installer, cập nhật nguồn)     cần mạng
     ung-dung          cài ứng dụng macDinh = true trong cau-hinh\UngDung.json              sauCai.ungDung, cần mạng
-    office            cài Office từ USB (\AutoSetup\office: setup.exe + .xml)              sauCai.office
+    office            cài Office (bộ cài trên USB \AutoSetup\office, hoặc tải theo
+                      cau-hinh\Office.xml)                                                 sauCai.office
     driver            nạp driver trên USB (\AutoSetup\drivers) và driver từ Windows Update  sauCai.driver
     cap-nhat-windows  cài bản cập nhật Windows                                             sauCai.capNhatWindows, cần mạng
     ten-may           đổi tên máy theo tên nhập lúc khởi động USB (tenMay = hoi)
@@ -48,7 +49,7 @@ $script:Steps = @(
     [pscustomobject]@{ Id = 'o-du-lieu'; Ten = 'Ổ dữ liệu là D'; CanMang = $false }
     [pscustomobject]@{ Id = 'winget'; Ten = 'Chuẩn bị winget'; CanMang = $true }
     [pscustomobject]@{ Id = 'ung-dung'; Ten = 'Cài ứng dụng'; CanMang = $true }
-    [pscustomobject]@{ Id = 'office'; Ten = 'Cài Office từ USB'; CanMang = $false }
+    [pscustomobject]@{ Id = 'office'; Ten = 'Cài Office'; CanMang = $false }
     [pscustomobject]@{ Id = 'driver'; Ten = 'Driver'; CanMang = $false }
     [pscustomobject]@{ Id = 'cap-nhat-windows'; Ten = 'Cập nhật Windows'; CanMang = $true }
     [pscustomobject]@{ Id = 'ten-may'; Ten = 'Đổi tên máy'; CanMang = $false }
@@ -143,9 +144,15 @@ function Request-Reboot {
 
 # ---------------------------------------------------------------- các bước
 function Invoke-StepODuLieu {
+    param($State)
     if ((Get-Cfg 'sauCai.oDuLieuLaD' $true) -ne $true) { return @('bo-qua', 'Tắt trong cấu hình (sauCai.oDuLieuLaD).') }
-    $r = Set-DataDriveLetter -DryRun:$ChayThu
-    return @($r.TrangThai, $r.GhiChu)
+    $r = Invoke-DataDriveLetter -TimeoutSeconds (60 * [int](Get-Cfg 'sauCai.choODiaPhut' 5)) -DryRun:$ChayThu
+    if ($r.QuaGio -ne $true -or $ChayThu) { return @($r.TrangThai, $r.GhiChu) }
+    # Lệnh đọc ổ đứng vì Windows không bật được dịch vụ theo yêu cầu (thử máy ảo 18/10/2026): khởi động lại là qua, còn
+    # chạy tiếp thì các bộ cài cần dịch vụ khác (Windows Installer của bộ cài .msi...) có thể đứng theo. Nên khởi động
+    # lại ngay một lần; sau khởi động lại vẫn đứng thì báo lỗi để các bước sau vẫn chạy.
+    if ((Get-StepStatus $State 'o-du-lieu') -ne 'cho-khoi-dong-lai') { return @('cho-khoi-dong-lai', "$($r.GhiChu) Khởi động lại máy rồi chạy lại bước này.") }
+    return @('loi', "$($r.GhiChu) Đã khởi động lại mà vẫn đứng; các bước sau vẫn chạy. Thử lại: CHAY_LAI.bat -Chi o-du-lieu.")
 }
 
 function Invoke-StepWinget {
@@ -177,7 +184,7 @@ function Invoke-StepUngDung {
 function Invoke-StepOffice {
     param([bool]$Net)
     if ((Get-Cfg 'sauCai.office' $true) -ne $true) { return @('bo-qua', 'Tắt trong cấu hình (sauCai.office).') }
-    $r = Install-OfficeFromUsb -UsbRoot (Find-UsbRoot) -HasInternet $Net -DryRun:$ChayThu
+    $r = Install-Office -UsbRoot (Find-UsbRoot) -ConfigXml (Join-Path $script:ConfigDir 'Office.xml') -WorkDir (Join-Path $script:Goc 'office') -HasInternet $Net -DryRun:$ChayThu
     return @($r.TrangThai, $r.GhiChu)
 }
 
@@ -243,7 +250,7 @@ function Invoke-StepTenMay {
 
 function Invoke-StepBaoCao {
     param($State)
-    $info = Get-MachineInfo
+    $info = Get-MachineInfo -DiskTimeoutSeconds (60 * [int](Get-Cfg 'sauCai.choODiaPhut' 5))
     $problems = Get-ProblemDevices
     $start = Get-Date
     $stamp = '{0}_{1:yyyyMMdd_HHmmss}' -f $env:COMPUTERNAME, $start
@@ -270,6 +277,7 @@ function Invoke-StepBaoCao {
     }
     $lines.Add('')
     $lines.Add('Ổ ĐĨA')
+    if ($info.oDiaLoi) { $lines.Add("  $($info.oDiaLoi)") }
     foreach ($v in $info.oDia) { $lines.Add(('  {0,-4} {1,-16} {2,-10} {3,8} GB, còn trống {4} GB' -f $v.o, $v.nhan, $v.loai, $v.dungLuongGB, $v.conTrongGB)) }
     if (@($info.bitLocker).Count) {
         $lines.Add('')
@@ -304,7 +312,7 @@ function Invoke-StepBaoCao {
 function Invoke-Step {
     param($Step, $State, [bool]$Net)
     switch ($Step.Id) {
-        'o-du-lieu' { return Invoke-StepODuLieu }
+        'o-du-lieu' { return Invoke-StepODuLieu $State }
         'winget' { return Invoke-StepWinget }
         'ung-dung' { return Invoke-StepUngDung $State }
         'office' { return Invoke-StepOffice $Net }

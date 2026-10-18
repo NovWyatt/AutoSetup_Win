@@ -13,7 +13,7 @@ try {
     # Bản sao cấu hình mặc định: không dính CauHinh.local.json, UngDung.local.json của người chạy bài thử.
     $env:AUTOSETUP_CAUHINH = Join-Path $d 'cau-hinh'
     New-Item -ItemType Directory -Path $env:AUTOSETUP_CAUHINH -Force | Out-Null
-    foreach ($f in 'CauHinh.json', 'UngDung.json') { Copy-Item (Join-Path $script:Repo "cau-hinh\$f") $env:AUTOSETUP_CAUHINH }
+    foreach ($f in 'CauHinh.json', 'UngDung.json', 'Office.xml') { Copy-Item (Join-Path $script:Repo "cau-hinh\$f") $env:AUTOSETUP_CAUHINH }
     $usb = Join-Path $d 'usb'
     New-Item -ItemType Directory -Path (Join-Path $usb 'ISO\Windows'), (Join-Path $usb 'ISO\Linux'), (Join-Path $usb 'ventoy') -Force | Out-Null
     foreach ($f in 'ISO\Windows\Win11_26300_x64_en-US.iso', 'ISO\Windows\Windows 10 22H2.iso', 'ISO\Linux\ubuntu-24.04.iso') { [IO.File]::WriteAllText((Join-Path $usb $f), '') }
@@ -31,7 +31,7 @@ try {
 
     $r = Invoke-Ps $tao @('-O', $usb, '-KhongDung')
     Assert-Equal 0 $r.Code "chép lên USB: mã 0 $(if ($r.Code) { $r.Text })"
-    foreach ($p in 'AutoSetup\sau-cai\SauCai.ps1', 'AutoSetup\sau-cai\CHAY_LAI.bat', 'AutoSetup\sau-cai\lib\UngDung.ps1', 'AutoSetup\cau-hinh\CauHinh.json', 'AutoSetup\cau-hinh\UngDung.json',
+    foreach ($p in 'AutoSetup\sau-cai\SauCai.ps1', 'AutoSetup\sau-cai\CHAY_LAI.bat', 'AutoSetup\sau-cai\lib\UngDung.ps1', 'AutoSetup\cau-hinh\CauHinh.json', 'AutoSetup\cau-hinh\UngDung.json', 'AutoSetup\cau-hinh\Office.xml',
         'AutoSetup\unattend\1_Chon-o-bang-tay.xml', 'AutoSetup\unattend\6_XOA-SACH-o_chia-C-D_Chi-Windows.xml', 'AutoSetup\office\DOC-TRUOC.txt', 'AutoSetup\drivers\DOC-TRUOC.txt', 'AutoSetup\ket_qua') {
         Assert-True (Test-Path (Join-Path $usb $p)) "có $p"
     }

@@ -168,7 +168,7 @@ function Install-Apps {
     # Cài từng ứng dụng; đã có thì bỏ qua; lỗi thì thử lại một lần. Một ứng dụng cài quá TimeoutSeconds (0 = chờ mãi)
     # thì dừng bộ cài, không thử lại. Ứng dụng portable (có loiTat) thì tạo lối tắt. Trả danh sách kết quả từng ứng dụng.
     param([object[]]$Apps, [string]$InstallRoot = '', [int]$TimeoutSeconds = 0, [switch]$DryRun)
-    $limitText = if ($TimeoutSeconds % 60) { "$TimeoutSeconds giây" } else { "$($TimeoutSeconds / 60) phút" }
+    $limitText = Format-Seconds $TimeoutSeconds
     $results = @()
     foreach ($a in $Apps) {
         $r = [ordered]@{ khoa = $a.khoa; ten = $a.ten; id = $a.id; ketQua = ''; ma = 0; ghiChu = '' }

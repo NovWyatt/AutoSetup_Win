@@ -120,6 +120,8 @@ function Test-AutoSetupConfig {
     if ($wait -lt 0 -or $wait -gt 120) { $err.Add('sauCai.choMangPhut phải từ 0 đến 120.') }
     $limit = & $v 'sauCai.choCaiPhut' 30
     if ($limit -lt 5 -or $limit -gt 600) { $err.Add('sauCai.choCaiPhut phải từ 5 đến 600.') }
+    $disk = & $v 'sauCai.choODiaPhut' 5
+    if ($disk -lt 1 -or $disk -gt 60) { $err.Add('sauCai.choODiaPhut phải từ 1 đến 60.') }
     $dir = [string](& $v 'sauCai.thuMucCai' '')
     if ($dir -and $dir -notmatch '^[A-Za-z]:\\') { $err.Add('sauCai.thuMucCai phải là đường dẫn đầy đủ (vd D:\Program Files) hoặc để trống.') }
     $sel = & $v 'ventoy.macDinh' 1

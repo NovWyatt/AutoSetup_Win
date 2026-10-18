@@ -1,7 +1,7 @@
 # AutoSetup_Win
 
 Cài Windows 10/11 tự động từ USB [Ventoy](https://www.ventoy.net): chọn ISO, chọn kiểu cài, rồi để máy tự chạy. Windows
-cài xong thì máy tự cài ứng dụng (winget), Office (nếu có bộ cài trên USB), driver, rồi ghi báo cáo.
+cài xong thì máy tự cài ứng dụng (winget), Office (Word, Excel, PowerPoint), driver, rồi ghi báo cáo.
 
 Dùng cho nhiều máy khác nhau (máy văn phòng, máy khách). Mọi lựa chọn nằm trong một file cấu hình
 [`cau-hinh/CauHinh.json`](cau-hinh/CauHinh.json), không cài cứng trong mã. Không cần biên dịch: chỉ PowerShell 5.1 có sẵn
@@ -11,6 +11,7 @@ trong Windows.
 > (Windows 11 build 26300): xoá ổ, OOBE, bước sau cài, chặn xoá khi máy có hai ổ, chế độ tự động hoàn toàn (tự tạo
 > tài khoản, khởi động lại giữa chừng rồi chạy tiếp); kết quả và các lỗi đã sửa ở
 > [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md). **Chưa thử trên máy thật**: thử một máy trước khi dùng cho máy khách.
+> Tải Office theo `cau-hinh/Office.xml` và giới hạn thời gian đọc ổ đĩa mới có bài thử giả lập, chưa chạy trên máy ảo.
 
 ## Làm được gì
 
@@ -27,12 +28,14 @@ trong Windows.
 1. **Cài Ventoy lên USB** (≥ 16 GB) bằng [Ventoy2Disk](https://www.ventoy.net/en/download.html). Chép ISO Windows vào USB
    (ví dụ `\ISO\Win11_26300_x64_en-US.iso`; tên file phải có `win...10` hoặc `win...11`).
 2. **Sửa cấu hình** nếu cần: [`cau-hinh/CauHinh.json`](cau-hinh/CauHinh.json) và danh sách ứng dụng
-   [`cau-hinh/UngDung.json`](cau-hinh/UngDung.json) (`macDinh: true` là cài). Giải thích từng khoá:
+   [`cau-hinh/UngDung.json`](cau-hinh/UngDung.json) (`macDinh: true` là cài; mặc định EVKey, UltraViewer, Chrome),
+   Office trong [`cau-hinh/Office.xml`](cau-hinh/Office.xml) (mặc định Word, Excel, PowerPoint). Giải thích từng khoá:
    [docs/CAU-HINH.md](docs/CAU-HINH.md). Muốn giữ cấu hình riêng mà không sửa file chung: tạo `CauHinh.local.json` chỉ
    chứa các khoá cần đổi (git bỏ qua file này).
 3. **Bấm đúp `TAO_USB.bat`**: sinh 6 file unattend, chép mọi thứ vào `\AutoSetup` trên USB, thêm menu cài tự động vào
    `\ventoy\ventoy.json` (giữ nguyên cấu hình Ventoy sẵn có, sao lưu bản cũ). Xem trước: `TAO_USB.bat -ChayThu`.
-4. (Không bắt buộc) chép bộ cài Office vào `\AutoSetup\office`, driver `.inf` vào `\AutoSetup\drivers` trên USB.
+4. (Không bắt buộc) driver `.inf` vào `\AutoSetup\drivers` trên USB; bộ cài Office có sẵn file vào `\AutoSetup\office`
+   nếu muốn cài Office không cần mạng.
 5. Khởi động máy cần cài bằng USB, chọn ISO, chọn kiểu cài trong menu. Cài xong, báo cáo nằm ở
    `C:\AutoSetup\ket_qua` và được chép vào `\AutoSetup\ket_qua` trên USB.
 
@@ -70,10 +73,10 @@ Chạy lại bằng tay: `C:\AutoSetup\sau-cai\CHAY_LAI.bat` (`-Chi ung-dung,dri
 
 | Bước | Việc | Cần mạng |
 |---|---|---|
-| `o-du-lieu` | Đưa phân vùng dữ liệu về chữ D (lúc cài, USB hay chiếm D). Chỉ đổi khi có đúng một phân vùng dữ liệu, hoặc một phân vùng nhãn DATA | |
+| `o-du-lieu` | Đưa phân vùng dữ liệu về chữ D (lúc cài, USB hay chiếm D). Chỉ đổi khi có đúng một phân vùng dữ liệu, hoặc một phân vùng nhãn DATA. Lệnh đọc ổ đĩa của Windows đứng quá `sauCai.choODiaPhut` phút thì dừng và khởi động lại máy một lần; vẫn đứng thì báo lỗi, chạy tiếp các bước sau | |
 | `winget` | Bảo đảm winget chạy được (đăng ký App Installer, cập nhật nguồn) | có |
-| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần; bộ cài treo quá `sauCai.choCaiPhut` phút thì dừng; ứng dụng portable (UniKey) được tạo lối tắt Start, Startup | có |
-| `office` | Cài Office bằng Office Deployment Tool trên USB | khi bộ cài không có sẵn file |
+| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần; bộ cài treo quá `sauCai.choCaiPhut` phút thì dừng; ứng dụng portable (EVKey, UniKey) được tạo lối tắt Start, Startup | có |
+| `office` | Cài Office bằng Office Deployment Tool: bộ cài trên USB nếu có, không thì tải `setup.exe` của Microsoft (kiểm chữ ký) và cài theo `cau-hinh/Office.xml` | khi không có sẵn file trên USB |
 | `driver` | Nạp driver trên USB (`pnputil`), rồi tải driver còn thiếu từ Windows Update; tự khởi động lại, tối đa 3 vòng | Windows Update |
 | `cap-nhat-windows` | Cài bản cập nhật Windows (tắt mặc định, lâu) | có |
 | `ten-may` | Đổi tên máy theo tên gõ lúc khởi động USB (khi `tenMay: "hoi"`) | |
@@ -84,10 +87,13 @@ Chưa có mạng thì đợi tối đa `sauCai.choMangPhut` phút (nhắc cắm 
 
 ## Office, driver
 
-- **Office:** tải [Office Deployment Tool](https://www.microsoft.com/download/details.aspx?id=49117), chép `setup.exe`
-  vào `\AutoSetup\office` trên USB, kèm file cấu hình `cau-hinh.xml` (sửa từ [docs/office-mau.xml](docs/office-mau.xml)
-  hoặc tạo ở [config.office.com](https://config.office.com)). Chạy `setup.exe /download cau-hinh.xml` một lần để cài
-  không cần mạng. Bộ cài không kèm khoá, không kích hoạt hộ.
+- **Office:** không cần làm gì: bước sau cài tải Office Deployment Tool của Microsoft
+  (`https://officecdn.microsoft.com/pr/wsus/setup.exe`, chỉ chạy khi có chữ ký Microsoft) và cài theo
+  [`cau-hinh/Office.xml`](cau-hinh/Office.xml): Microsoft 365 Apps, chỉ Word, Excel, PowerPoint, khoảng 2-3 GB tải từ
+  Microsoft. Office chưa kích hoạt: đăng nhập tài khoản Microsoft 365 có giấy phép (Word > File > Account), hoặc dùng
+  bản mua đứt bằng `cau-hinh/Office.local.xml` có Product ID và khoá của bạn (git bỏ qua file này). Muốn cài không cần
+  mạng: tải [ODT](https://www.microsoft.com/download/details.aspx?id=49117), chép `setup.exe` và file cấu hình
+  `cau-hinh.xml` vào `\AutoSetup\office` trên USB, chạy `setup.exe /download cau-hinh.xml` một lần.
 - **Driver:** chép thư mục driver dạng `.inf` vào `\AutoSetup\drivers` (ví dụ xuất từ máy cùng model bằng
   `pnputil /export-driver * <thư mục>`). Driver còn thiếu được tải tiếp từ Windows Update.
 
@@ -95,13 +101,13 @@ Chưa có mạng thì đợi tối đa `sauCai.choMangPhut` phút (nhắc cắm 
 
 ```
 TAO_USB.bat, TAO_UNATTEND.bat   bấm đúp: chép lên USB / chỉ sinh file unattend
-cau-hinh/        CauHinh.json (cấu hình), UngDung.json (ứng dụng winget)
+cau-hinh/        CauHinh.json (cấu hình), UngDung.json (ứng dụng winget), Office.xml (Office cần cài)
 unattend/        khung.xml, KiemTraO.vbs (kiểm tra ổ trong WinPE), scripts/ (nhúng vào file unattend:
                  GiaiNen, Specialize, DefaultUser, FirstLogon)
 sau-cai/         SauCai.ps1 + lib/ (chép lên USB rồi vào C:\AutoSetup): ứng dụng, driver, ổ đĩa, báo cáo
 scripts/         TaoUnattend.ps1, TaoUSB.ps1, ChuanHoaFile.ps1 (chuẩn hoá mã hoá trước khi commit)
 tests/           bài thử giả lập: CHAY_KIEM_THU.bat; may-ao/ dựng ISO thử, máy ảo VirtualBox
-docs/            CAU-HINH.md, THU-MAY-AO.md, PHAN-TICH-AUTOINSTALLER.md, office-mau.xml
+docs/            CAU-HINH.md, THU-MAY-AO.md, PHAN-TICH-AUTOINSTALLER.md
 out/             file unattend đã sinh (không commit: có thể có mật khẩu)
 ```
 

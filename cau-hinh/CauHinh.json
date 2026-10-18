@@ -91,6 +91,7 @@
     "oDuLieuLaD": true,
     "choMangPhut": 10,
     "choCaiPhut": 30,
+    "choODiaPhut": 5,
     "thuMucCai": "",
     "tuKhoiDongLai": true
   },

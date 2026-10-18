@@ -124,9 +124,9 @@ Cùng cấu hình lần 2 (tên máy MAYTHU-04), code xoá cả hai bí mật LS
 Máy ảo: 4 nhân kẹt 3 lần (xem "Kinh nghiệm"), lần tắt giữa OOBE làm Windows hiện "Why did my PC restart?"; về 1 nhân thì
 hết kẹt.
 
-Chưa sửa: bước "Ổ dữ liệu là D" đứng 45 phút. Dịch vụ PushToInstall của Windows kẹt ở trạng thái START_PENDING nên các
-dịch vụ bật theo yêu cầu không bật được (smphost, cần cho `Get-Partition`; cả truy vấn WMI bộ đếm hiệu năng cũng đứng).
-Khởi động lại thì bước này qua ngay. Bước này chưa có giới hạn thời gian.
+Bước "Ổ dữ liệu là D" đứng 45 phút: dịch vụ PushToInstall của Windows kẹt ở trạng thái START_PENDING nên các dịch vụ
+bật theo yêu cầu không bật được (smphost, cần cho `Get-Partition`; cả truy vấn WMI bộ đếm hiệu năng cũng đứng). Khởi
+động lại thì bước này qua ngay. Đã sửa, xem mục cuối danh sách dưới (chưa thử lại trên máy ảo).
 
 Lỗi tìm ra khi thử và đã sửa:
 
@@ -152,3 +152,9 @@ Lỗi tìm ra khi thử và đã sửa:
   đặt 1 thành tự đăng nhập 2 lần, nên chỉ một lần khởi động lại của bước sau cài được tự đăng nhập. Nay FirstLogon ghi
   thẳng `AutoLogonCount` = 4 (bằng số lần khởi động lại tối đa của bước sau cài); lần khởi động lại để đổi tên máy
   không còn bị tắt tự đăng nhập trước.
+- **Lệnh đọc ổ đĩa đứng mãi làm cả bước sau cài đứng** (lần 4): `Get-Partition`, `Get-Disk`, `Get-Volume`,
+  `Get-BitLockerVolume` chờ smphost và không ngắt được trong cùng tiến trình. Nay bước `o-du-lieu` và phần ổ đĩa,
+  BitLocker của báo cáo chạy trong một powershell.exe riêng (`sau-cai\lib\ChayRieng.ps1`), quá `sauCai.choODiaPhut`
+  (5 phút) thì dừng tiến trình đó. Bước `o-du-lieu` quá giờ thì khởi động lại máy một lần rồi chạy lại (lúc đó các bộ
+  cài cần dịch vụ khác, như bộ cài `.msi`, cũng có thể đứng); sau khởi động lại vẫn đứng thì báo lỗi, các bước sau vẫn
+  chạy, thử lại bằng `CHAY_LAI.bat -Chi o-du-lieu`. Báo cáo ghi "không đọc được" ở mục ổ đĩa thay vì đứng.

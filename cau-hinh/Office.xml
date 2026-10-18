@@ -1,0 +1,34 @@
+<!--
+  Cấu hình Office Deployment Tool cho bước sau cài: chỉ cài Word, Excel, PowerPoint (64-bit, giao diện tiếng Việt, kèm
+  tiếng Anh). USB không có bộ cài Office (\AutoSetup\office\setup.exe) thì bước sau cài tự tải setup.exe của Microsoft
+  rồi cài theo file này; Office tải từ Microsoft nên máy cần mạng.
+  - Không có khoá sản phẩm: Microsoft 365 kích hoạt bằng đăng nhập tài khoản có giấy phép (Word > File > Account).
+    Office mua đứt (Home 2024...) hay bản volume thì đổi Product ID, Channel, thêm PIDKEY="..." của bạn vào
+    cau-hinh\Office.local.xml (git không commit file .local.xml; TaoUSB chép file đó lên USB thay cho file này).
+  - Muốn cài thêm ứng dụng: xoá dòng ExcludeApp của ứng dụng đó (Outlook, OneNote...).
+  - Tạo cấu hình khác tại https://config.office.com
+-->
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="Current">
+    <Product ID="O365BusinessRetail">
+      <Language ID="vi-vn" />
+      <Language ID="en-us" />
+      <ExcludeApp ID="Access" />
+      <ExcludeApp ID="Bing" />
+      <ExcludeApp ID="Groove" />
+      <ExcludeApp ID="Lync" />
+      <ExcludeApp ID="OneDrive" />
+      <ExcludeApp ID="OneNote" />
+      <ExcludeApp ID="Outlook" />
+      <ExcludeApp ID="OutlookForWindows" />
+      <ExcludeApp ID="Publisher" />
+      <ExcludeApp ID="Teams" />
+    </Product>
+  </Add>
+  <Property Name="AUTOACTIVATE" Value="0" />
+  <Property Name="FORCEAPPSHUTDOWN" Value="TRUE" />
+  <Property Name="SharedComputerLicensing" Value="0" />
+  <Updates Enabled="TRUE" />
+  <RemoveMSI />
+  <Display Level="None" AcceptEULA="TRUE" />
+</Configuration>
