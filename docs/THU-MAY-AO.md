@@ -59,6 +59,8 @@ Thử trên máy ảo trước khi dùng cho máy khách. Không cần Ventoy: I
 - Máy ảo có lúc khựng hơn 15 phút giữa chừng (màn hình đứng hình, ổ không đọc ghi), các nhân ảo nằm ở vòng nghỉ chờ ngắt.
   Hai lần đọc thanh ghi từng nhân (`VBoxManage debugvm <tên> getregisters --cpu <0..3> rip`) làm máy ảo chạy lại ngay.
 - RAM máy thật cần trống ít nhất 2 GB ngoài phần cho máy ảo; thiếu RAM thì máy ảo đứng từng lúc (đĩa ảo bị reset).
+  Giảm RAM máy ảo để đỡ thiếu: 3 GB vẫn cài được (WinPE 75 phút); 2,5 GB thì UEFI đứng ở `PciHostBridgeDxe` (cuối
+  `Logs\VBox.log`) ngay khi bật, ba lần như nhau.
 - DNS của mạng NAT hay hỏng: `TaoMayAo.ps1` bật `--natdnshostresolver1 on`. Thiếu DNS thì OOBE chậm tới mức Windows
   khởi động lại OOBE ("Why did my PC restart?"), winget không tải được.
 - Màn hình máy ảo tắt sau vài phút không bấm gì: bấm Ctrl để sáng lại (đừng bấm Shift 5 lần: bật Sticky Keys). Phím đầu
@@ -190,8 +192,27 @@ EVKey lỗi không do AutoSetup: gói winget `lamquangminh.EVKey` tải
 lại file này ngày 18/6/2026 (SHA256 nay là `59ac1cee…`, đúng digest GitHub ghi) trong khi manifest vẫn giữ `836fb7d7…`;
 winget chạy quyền admin không cho bỏ qua hash. Chừng nào manifest chưa sửa thì máy nào cũng thiếu bộ gõ, và mỗi lần tác
 giả tải lên lại thì lỗi lặp lại. Đã sửa ở commit f88f46d (sau lần thử này): winget không cài được thì tải thẳng
-EVKey.zip từ bản phát hành GitHub, chỉ cài khi SHA256 khớp digest GitHub ghi. Phần này chưa chạy trên máy ảo.
+EVKey.zip từ bản phát hành GitHub, chỉ cài khi SHA256 khớp digest GitHub ghi. Đã thử lại trên máy ảo: đạt (dưới).
 
 Máy ảo: WinPE mất 68 phút (RAM máy thật chỉ còn 0,4–2 GB trống, máy ảo bị đẩy một phần ra pagefile). Giữa OOBE Windows
 tự khởi động lại rồi hiện "Why did my PC restart?" (không ai tắt máy ảo); mất gần một giờ vì phím không tới nút Next
 (cách xử lý ở "Kinh nghiệm"), sau đó gặp "Something went wrong" OOBEZDP, bấm Skip thì qua và tự đăng nhập `KeToan`.
+
+**Thử lại với commit f88f46d** (tối 18/10/2026): dựng lại ISO thử, cài lại Thu2 cùng cấu hình (MAYTHU-05), RAM máy ảo
+3 GB (RAM máy thật vẫn thiếu).
+
+| Mục | Kết quả |
+|---|---|
+| EVKey | winget vẫn báo 0x8A150011 (thử 2 lần); AutoSetup in "winget không cài được EVKey ... tải từ GitHub lamquangminh/EVKey/Release/EVKey.zip..." rồi "Đã cài EVKey", "Lối tắt EVKey trong Start, Startup (chạy cùng Windows)". Ổ ảo có `C:\Users\KeToan\AppData\Local\Programs\EVKey\x64\EVKey64.exe` (cùng `x86`, `arm64`), `EVKey.lnk` trong `Start Menu\Programs` và `Startup` của KeToan; EVKey tự mở (cửa sổ "EVKey x64 - 6.0.5 - Jun 17 2026"). Báo cáo ghi "đã cài (winget báo mã băm bộ cài không khớp manifest winget (-1978335215 (0x8A150011)), đã cài từ bản phát hành GitHub)" |
+| UltraViewer, Chrome, Office | Cài xong như lượt đầu; Office 16 phút, `Office16` chỉ có WINWORD, EXCEL, POWERPNT |
+| Ổ dữ liệu là D | **Lượt chạy 1 quá giờ**: in "Đọc phân vùng ổ đĩa (dừng nếu quá 5 phút)..." lúc 21:53, tới 22:00 dừng với "Lệnh đọc ổ đĩa của Windows đứng quá 5 phút ... đã dừng", "Cần khởi động lại", "Máy tự khởi động lại sau 60 giây". Máy khởi động lại (Windows cài cập nhật: "Updates are underway"), tự đăng nhập; lượt chạy 2 (từ 22:15) bước này bỏ qua đúng (chỉ có ổ C) rồi chạy hết 8 bước tới 22:42. `TrangThai.json`: `lanChay` = 2, `khoiDongLai` = 1. Đúng như thiết kế ở 57cde99 |
+| Báo cáo | Như lượt đầu (Ổ ĐĨA, BITLOCKER); dòng "Ổ dữ liệu là D" chỉ ghi kết quả lượt chạy 2, không nhắc lần quá giờ |
+
+Lúc lượt chạy 1 đọc ổ thì Windows đang tự cập nhật trong nền: 21:41 hiện màn "Installing Windows 11 ... 20% complete"
+toàn màn hình; `C:\Windows\SoftwareDistribution\ReportingEvents.log` ghi Windows Update tìm, tải cập nhật liên tục
+21:44–21:59; `C:\Windows\Logs\MoSetup\UpdateAgent.log` ghi tải bản cập nhật tích luỹ và gói ngôn ngữ vi-VN 21:54–21:57.
+Có thể cùng nguyên nhân với cảnh đứng 45 phút ở lần 4; lần này giới hạn 5 phút cắt được, khởi động lại một lần là qua.
+Máy thật gặp cảnh này thì bước sau cài chậm thêm khoảng 10 phút.
+
+Máy ảo lượt này: WinPE 75 phút. Không gặp "Why did my PC restart?"; "Something went wrong" OOBEZDP hiện ngay ở lượt OOBE
+đầu, bấm Skip thì qua. Màn này chờ người bấm, cài máy thật nên để ý.
