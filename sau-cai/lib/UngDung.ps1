@@ -7,6 +7,7 @@ $script:WingetCommon = @('--source', 'winget', '--accept-source-agreements', '--
 $script:WgNotFound = -1978335212       # 0x8A150014: không thấy ứng dụng (winget list)
 $script:WgReboot = -1978334967         # 0x8A150109: cài xong, cần khởi động lại
 $script:WgAlready = -1978335135        # 0x8A150061: đã cài
+$script:WgHashMismatch = -1978335215   # 0x8A150011: mã băm bộ cài không khớp manifest
 $script:WgTimeout = -2                 # không phải mã của winget: Invoke-Winget dừng vì quá giờ
 $script:WgFamily = 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe'
 
@@ -121,18 +122,62 @@ function Test-AppInstalled {
     return ($r.Code -eq 0)
 }
 
+function Get-GithubAppDir {
+    # Thư mục ứng dụng tải thẳng từ GitHub: %LOCALAPPDATA%\Programs\<khoa> (thư mục của tài khoản như chỗ winget giải nén
+    # bản portable, ứng dụng ghi được thiết lập cạnh file chạy). Bài thử đặt AUTOSETUP_PORTABLE.
+    param([string]$Khoa)
+    $root = if ($env:AUTOSETUP_PORTABLE) { $env:AUTOSETUP_PORTABLE } else { Join-Path $env:LOCALAPPDATA 'Programs' }
+    return (Join-Path $root $Khoa)
+}
+
 function Find-PortableExe {
-    # File chạy của ứng dụng portable: winget giải nén vào WinGet\Packages\<id>_<nguồn> của tài khoản (hoặc của máy khi
-    # cài --scope machine). Bài thử đặt AUTOSETUP_PORTABLE thay cho các thư mục đó. Không thấy thì $null.
-    param([string]$Id, [string]$Exe)
-    $roots = if ($env:AUTOSETUP_PORTABLE) { @($env:AUTOSETUP_PORTABLE) } else { @((Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'), (Join-Path $env:ProgramFiles 'WinGet\Packages')) }
-    foreach ($root in $roots) {
-        foreach ($d in @(Get-ChildItem -LiteralPath $root -Directory -Filter "$($Id)_*" -ErrorAction SilentlyContinue)) {
-            $f = Get-ChildItem -LiteralPath $d.FullName -Recurse -File -Filter $Exe -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($f) { return $f.FullName }
-        }
+    # File chạy (loiTat) của ứng dụng portable: winget giải nén vào WinGet\Packages\<id>_<nguồn> của tài khoản (hoặc của
+    # máy khi cài --scope machine); bản tải từ GitHub nằm ở Get-GithubAppDir. Bài thử đặt AUTOSETUP_PORTABLE thay cho các
+    # thư mục đó. -ChiGithub: chỉ tìm bản tải từ GitHub. Không thấy thì $null.
+    param($App, [switch]$ChiGithub)
+    if (-not $App.loiTat) { return $null }
+    $dirs = @()
+    if (-not $ChiGithub) {
+        $roots = if ($env:AUTOSETUP_PORTABLE) { @($env:AUTOSETUP_PORTABLE) } else { @((Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'), (Join-Path $env:ProgramFiles 'WinGet\Packages')) }
+        foreach ($root in $roots) { $dirs += @(Get-ChildItem -LiteralPath $root -Directory -Filter "$($App.id)_*" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }) }
+    }
+    if ($App.github) { $dirs += Get-GithubAppDir $App.khoa }
+    foreach ($d in $dirs) {
+        $f = Get-ChildItem -LiteralPath $d -Recurse -File -Filter ([string]$App.loiTat) -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($f) { return $f.FullName }
     }
     return $null
+}
+
+function Install-GithubApp {
+    # Cài ứng dụng portable thẳng từ bản phát hành GitHub (khoá github: "chủ/kho/nhãn/tệp") khi winget không cài được.
+    # Tác giả EVKey thay EVKey.zip ngay trong bản phát hành cũ nên mã băm trong manifest winget không còn khớp, winget
+    # từ chối cài (thử máy ảo 18/10/2026). Chỉ cài khi SHA256 của tệp tải về khớp mã băm GitHub ghi cho tệp đó; .zip thì
+    # giải nén vào Get-GithubAppDir. Bài thử đặt AUTOSETUP_GITHUB_API (thay https://api.github.com). Trả ghi chú lỗi,
+    # rỗng khi xong.
+    param($App)
+    $p = ([string]$App.github).Split('/')
+    if ($p.Count -ne 4 -or @($p | Where-Object { -not $_ }).Count) { return "khoá github '$($App.github)' sai dạng (cần chủ/kho/nhãn/tệp)" }
+    $api = if ($env:AUTOSETUP_GITHUB_API) { $env:AUTOSETUP_GITHUB_API } else { 'https://api.github.com' }
+    $tmp = ''
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $rel = Invoke-RestMethod -Uri ('{0}/repos/{1}/{2}/releases/tags/{3}' -f $api, $p[0], $p[1], $p[2]) -UseBasicParsing -TimeoutSec 60 -Headers @{ 'User-Agent' = 'AutoSetup_Win' }
+        $asset = @($rel.assets | Where-Object { $_.name -eq $p[3] }) | Select-Object -First 1
+        if (-not $asset) { return "bản phát hành $($p[2]) không có $($p[3])" }
+        if ([string]$asset.digest -notmatch '^sha256:([0-9a-fA-F]{64})$') { return "GitHub không ghi mã băm SHA256 cho $($p[3]), không cài" }
+        $want = $Matches[1].ToLowerInvariant()
+        $tmp = Join-Path ([IO.Path]::GetTempPath()) ('AutoSetup_{0}_{1}' -f [guid]::NewGuid().ToString('N'), $p[3])
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmp -UseBasicParsing -TimeoutSec 300
+        $got = (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($got -ne $want) { return "tệp tải về sai mã băm (được $got, GitHub ghi $want), không cài" }
+        $dir = Get-GithubAppDir $App.khoa
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        if ($p[3] -like '*.zip') { Expand-Archive -LiteralPath $tmp -DestinationPath $dir -Force }
+        else { Copy-Item -LiteralPath $tmp -Destination (Join-Path $dir $p[3]) -Force }
+    } catch { return "tải từ GitHub lỗi: $($_.Exception.Message.Trim())" }
+    finally { if ($tmp) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue } }
+    return ''
 }
 
 function Add-PortableShortcut {
@@ -143,7 +188,7 @@ function Add-PortableShortcut {
     $exeName = [string]$App.loiTat
     $auto = $App.tuChay -eq $true
     if ($DryRun) { Write-Plan ("{0}: lối tắt {1} trong Start{2}" -f $App.ten, $exeName, $(if ($auto) { ', Startup' })); return '' }
-    $exe = Find-PortableExe $App.id $exeName
+    $exe = Find-PortableExe $App
     if (-not $exe) { return "không thấy $exeName để tạo lối tắt" }
     $programs = [Environment]::GetFolderPath('Programs'); $startup = [Environment]::GetFolderPath('Startup')
     if ($env:AUTOSETUP_LOITAT) { $programs = Join-Path $env:AUTOSETUP_LOITAT 'Programs'; $startup = Join-Path $env:AUTOSETUP_LOITAT 'Startup' }
@@ -166,13 +211,14 @@ function Add-PortableShortcut {
 
 function Install-Apps {
     # Cài từng ứng dụng; đã có thì bỏ qua; lỗi thì thử lại một lần. Một ứng dụng cài quá TimeoutSeconds (0 = chờ mãi)
-    # thì dừng bộ cài, không thử lại. Ứng dụng portable (có loiTat) thì tạo lối tắt. Trả danh sách kết quả từng ứng dụng.
+    # thì dừng bộ cài, không thử lại. winget không cài được mà ứng dụng có khoá github thì tải từ GitHub. Ứng dụng
+    # portable (có loiTat) thì tạo lối tắt. Trả danh sách kết quả từng ứng dụng.
     param([object[]]$Apps, [string]$InstallRoot = '', [int]$TimeoutSeconds = 0, [switch]$DryRun)
     $limitText = Format-Seconds $TimeoutSeconds
     $results = @()
     foreach ($a in $Apps) {
         $r = [ordered]@{ khoa = $a.khoa; ten = $a.ten; id = $a.id; ketQua = ''; ma = 0; ghiChu = '' }
-        if (Test-AppInstalled $a.id) {
+        if ((Test-AppInstalled $a.id) -or ($a.github -and (Find-PortableExe $a -ChiGithub))) {
             Write-Ok "Đã có: $($a.ten)"
             $r.ketQua = 'da-co'
             if ($a.loiTat) { $r.ghiChu = Add-PortableShortcut $a -DryRun:$DryRun }
@@ -183,6 +229,7 @@ function Install-Apps {
         if ($InstallRoot -and $a.doiThuMuc -eq $true) { $wgArgs += @('--location', (Join-Path $InstallRoot $a.khoa)) }
         if ($DryRun) {
             Write-Plan ("{0}   winget {1}" -f $a.ten, ($wgArgs -join ' '))
+            if ($a.github) { Write-Plan "$($a.ten)   winget lỗi thì tải từ GitHub $($a.github)" }
             if ($a.loiTat) { [void](Add-PortableShortcut $a -DryRun) }
             $r.ketQua = 'chay-thu'
             $results += [pscustomobject]$r
@@ -199,9 +246,18 @@ function Install-Apps {
             Start-Sleep -Seconds 5
         }
         $r.ma = $code
-        if (Test-AppInstalled $a.id) {
+        $wgText = if ($code -eq $script:WgHashMismatch) { "mã băm bộ cài không khớp manifest winget ($(Format-ExitCode $code))" } else { "mã $(Format-ExitCode $code)" }
+        $installed = Test-AppInstalled $a.id
+        $ghErr = ''; $viaGithub = $false
+        if (-not $installed -and $a.github) {
+            Write-Warn "winget không cài được $($a.ten) ($wgText), tải từ GitHub $($a.github)..."
+            $ghErr = Install-GithubApp $a
+            if ($ghErr) { Write-Bad "Tải $($a.ten) từ GitHub lỗi: $ghErr" } else { $installed = $true; $viaGithub = $true }
+        }
+        if ($installed) {
             $r.ketQua = 'da-cai'
-            if ($code -eq $script:WgReboot) { $r.ghiChu = 'cần khởi động lại để cài xong' }
+            if ($viaGithub) { $r.ghiChu = "winget báo $wgText, đã cài từ bản phát hành GitHub" }
+            elseif ($code -eq $script:WgReboot) { $r.ghiChu = 'cần khởi động lại để cài xong' }
             elseif ($code -eq $script:WgTimeout) { $r.ghiChu = "bộ cài chạy quá $limitText, đã dừng nhưng ứng dụng đã có trong danh sách đã cài" }
             elseif ($code -ne 0) { $r.ghiChu = "winget báo mã $(Format-ExitCode $code) nhưng ứng dụng đã có trong danh sách đã cài" }
             Write-Ok "Đã cài $($a.ten)"
@@ -211,7 +267,8 @@ function Install-Apps {
             }
         } else {
             $r.ketQua = 'loi'
-            $r.ghiChu = if ($code -eq $script:WgTimeout) { "bộ cài chạy quá $limitText, đã dừng" } else { "winget install mã $(Format-ExitCode $code)" }
+            $r.ghiChu = if ($code -eq $script:WgTimeout) { "bộ cài chạy quá $limitText, đã dừng" } else { "winget install $wgText" }
+            if ($ghErr) { $r.ghiChu += "; GitHub: $ghErr" }
             Write-Bad "Chưa cài được $($a.ten): $($r.ghiChu)"
         }
         $results += [pscustomobject]$r

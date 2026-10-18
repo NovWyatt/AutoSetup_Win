@@ -75,7 +75,7 @@ Chạy lại bằng tay: `C:\AutoSetup\sau-cai\CHAY_LAI.bat` (`-Chi ung-dung,dri
 |---|---|---|
 | `o-du-lieu` | Đưa phân vùng dữ liệu về chữ D (lúc cài, USB hay chiếm D). Chỉ đổi khi có đúng một phân vùng dữ liệu, hoặc một phân vùng nhãn DATA. Lệnh đọc ổ đĩa của Windows đứng quá `sauCai.choODiaPhut` phút thì dừng và khởi động lại máy một lần; vẫn đứng thì báo lỗi, chạy tiếp các bước sau | |
 | `winget` | Bảo đảm winget chạy được (đăng ký App Installer, cập nhật nguồn) | có |
-| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần; bộ cài treo quá `sauCai.choCaiPhut` phút thì dừng; ứng dụng portable (EVKey, UniKey) được tạo lối tắt Start, Startup | có |
+| `ung-dung` | Cài ứng dụng `macDinh: true` từ nguồn winget của Microsoft; đọc lại danh sách đã cài để chắc đã cài xong; lỗi thì thử lại một lần; bộ cài treo quá `sauCai.choCaiPhut` phút thì dừng; ứng dụng portable (EVKey, UniKey) được tạo lối tắt Start, Startup; winget không cài được EVKey (gói winget sai mã băm) thì tải thẳng từ bản phát hành GitHub, kiểm SHA256 | có |
 | `office` | Cài Office bằng Office Deployment Tool: bộ cài trên USB nếu có, không thì tải `setup.exe` của Microsoft (kiểm chữ ký) và cài theo `cau-hinh/Office.xml` | khi không có sẵn file trên USB |
 | `driver` | Nạp driver trên USB (`pnputil`), rồi tải driver còn thiếu từ Windows Update; tự khởi động lại, tối đa 3 vòng | Windows Update |
 | `cap-nhat-windows` | Cài bản cập nhật Windows (tắt mặc định, lâu) | có |

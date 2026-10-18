@@ -3,7 +3,7 @@
   "ungDung": [
     { "khoa": "Zalo", "id": "VNGCorp.Zalo", "ten": "Zalo", "macDinh": false },
     { "khoa": "UniKey", "id": "UniKey.UniKey", "ten": "UniKey (bộ gõ tiếng Việt)", "macDinh": false, "nhom": "bo-go", "loiTat": "UnikeyNT.exe", "tuChay": true, "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản" },
-    { "khoa": "EVKey", "id": "lamquangminh.EVKey", "ten": "EVKey (bộ gõ tiếng Việt)", "macDinh": true, "nhom": "bo-go", "loiTat": "EVKey64.exe", "tuChay": true, "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản" },
+    { "khoa": "EVKey", "id": "lamquangminh.EVKey", "ten": "EVKey (bộ gõ tiếng Việt)", "macDinh": true, "nhom": "bo-go", "loiTat": "EVKey64.exe", "tuChay": true, "github": "lamquangminh/EVKey/Release/EVKey.zip", "ghiChu": "bản portable: winget giải nén vào thư mục của tài khoản. Từ 18/06/2026 tác giả thay EVKey.zip trong bản phát hành cũ nên winget báo sai mã băm: khi đó tải thẳng từ GitHub (khoá github)" },
     { "khoa": "SevenZip", "id": "7zip.7zip", "ten": "7-Zip (nén, giải nén)", "macDinh": false },
     { "khoa": "WinRAR", "id": "RARLab.WinRAR", "ten": "WinRAR (bản dùng thử)", "macDinh": false },
     { "khoa": "Foxit", "id": "Foxit.FoxitReader", "ten": "Foxit PDF Reader", "macDinh": false, "nhom": "doc-pdf" },

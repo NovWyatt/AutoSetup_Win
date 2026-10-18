@@ -103,6 +103,40 @@ try {
     $res = Install-Apps -Apps @($port[0])
     Assert-True ($res[0].ketQua -eq 'da-co' -and (Test-Path $lnk)) 'đã có: vẫn bảo đảm lối tắt'
 
+    # ---- winget lỗi (EVKey: mã băm manifest không khớp) thì tải từ bản phát hành GitHub, chỉ khi SHA256 khớp
+    $gh = Join-Path $d 'gh'
+    $zipSrc = Join-Path $d 'evsrc\EVKey'
+    New-Item -ItemType Directory -Path $zipSrc, (Join-Path $gh 'repos\chu\kho\releases\tags') -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $zipSrc 'Ev64.exe'), 'MZ')
+    $zip = Join-Path $d 'Ev.zip'
+    Compress-Archive -Path (Join-Path $d 'evsrc\*') -DestinationPath $zip
+    $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+    $assets = @(
+        [ordered]@{ name = 'Ev.zip'; digest = "sha256:$hash"; browser_download_url = ([Uri]$zip).AbsoluteUri },
+        [ordered]@{ name = 'Sai.zip'; digest = ('sha256:' + ('0' * 64)); browser_download_url = ([Uri]$zip).AbsoluteUri },
+        [ordered]@{ name = 'KhongBam.zip'; digest = $null; browser_download_url = ([Uri]$zip).AbsoluteUri }
+    )
+    Write-JsonFile (Join-Path $gh 'repos\chu\kho\releases\tags\Release') ([ordered]@{ assets = $assets })
+    $env:AUTOSETUP_GITHUB_API = ([Uri]$gh).AbsoluteUri
+    $ghApps = @(
+        [pscustomobject]@{ khoa = 'EvGit'; id = 'Ev.Loi'; ten = 'Ev'; macDinh = $true; loiTat = 'Ev64.exe'; tuChay = $true; github = 'chu/kho/Release/Ev.zip' },
+        [pscustomobject]@{ khoa = 'EvSai'; id = 'EvSai.Loi'; ten = 'Ev sai'; macDinh = $true; loiTat = 'Ev64.exe'; github = 'chu/kho/Release/Sai.zip' },
+        [pscustomobject]@{ khoa = 'EvKhong'; id = 'EvKhong.Loi'; ten = 'Ev không băm'; macDinh = $true; loiTat = 'Ev64.exe'; github = 'chu/kho/Release/KhongBam.zip' }
+    )
+    $res = Install-Apps -Apps $ghApps
+    Assert-Equal 'da-cai' $res[0].ketQua "winget lỗi: cài từ GitHub ($($res[0].ghiChu))"
+    Assert-True ($res[0].ghiChu -match 'GitHub') 'ghi chú nói đã cài từ GitHub'
+    $evExe = Join-Path (Get-GithubAppDir 'EvGit') 'EVKey\Ev64.exe'
+    Assert-True (Test-Path $evExe) 'giải nén vào thư mục của ứng dụng'
+    Assert-Equal $evExe ((New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $env:AUTOSETUP_LOITAT 'Programs\EvGit.lnk')).TargetPath) 'lối tắt trỏ vào bản GitHub'
+    Assert-True (Test-Path (Join-Path $env:AUTOSETUP_LOITAT 'Startup\EvGit.lnk')) 'bản GitHub: có lối tắt trong Startup'
+    Assert-True ($res[1].ketQua -eq 'loi' -and $res[1].ghiChu -match 'sai mã băm' -and -not (Test-Path (Get-GithubAppDir 'EvSai'))) "sai mã băm: không cài ($($res[1].ghiChu))"
+    Assert-True ($res[2].ketQua -eq 'loi' -and $res[2].ghiChu -match 'không ghi mã băm') "GitHub không ghi mã băm: không cài ($($res[2].ghiChu))"
+    $n = @(Get-Content (Join-Path $fake 'install.log')).Count
+    $res = Install-Apps -Apps @($ghApps[0])
+    Assert-True ($res[0].ketQua -eq 'da-co' -and @(Get-Content (Join-Path $fake 'install.log')).Count -eq $n) 'bản GitHub đã có: không cài lại'
+    $env:AUTOSETUP_GITHUB_API = ''
+
     # ---- bộ cài treo: dừng khi quá giờ (cả tiến trình con), không thử lại
     $t0 = Get-Date
     $res = Install-Apps -Apps @([pscustomobject]@{ khoa = 'Treo'; id = 'App.Treo'; ten = 'Treo'; macDinh = $true }) -TimeoutSeconds 3
@@ -213,7 +247,7 @@ try {
     $r = Invoke-Ps (Join-Path $as 'sau-cai\SauCai.ps1') @('-ChayThu', '-KhongDung', '-Chi', 'khong-co')
     Assert-Equal 1 $r.Code 'bước không có: mã 1'
 } finally {
-    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP', 'AUTOSETUP_PORTABLE', 'AUTOSETUP_LOITAT', 'AUTOSETUP_TEST_TREO_ODIA') { Set-Item -Path "env:$v" -Value '' }
+    foreach ($v in 'AUTOSETUP_GOC', 'AUTOSETUP_WINGET', 'AS_FAKE', 'AUTOSETUP_USB', 'AUTOSETUP_TEST_MANG', 'AUTOSETUP_TEST_NAP', 'AUTOSETUP_PORTABLE', 'AUTOSETUP_LOITAT', 'AUTOSETUP_TEST_TREO_ODIA', 'AUTOSETUP_GITHUB_API') { Set-Item -Path "env:$v" -Value '' }
     Remove-TestDir $d
 }
 

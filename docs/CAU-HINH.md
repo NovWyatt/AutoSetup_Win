@@ -123,7 +123,10 @@ Mỗi ứng dụng: `khoa` (tên ngắn), `id` (mã gói winget, kiểm bằng `
 `macDinh` (`true` là cài), `nhom` (cùng nhóm chỉ cài một, cái đứng trước được ưu tiên: bộ gõ, trình đọc PDF),
 `doiThuMuc` (bộ cài nhận được thư mục cài riêng), `loiTat` (ứng dụng portable như UniKey, EVKey: winget chỉ giải nén,
 không tạo lối tắt; ghi tên file chạy để bước sau cài tạo lối tắt trong Start), `tuChay` (cùng `loiTat`: thêm lối tắt vào
-Startup để chạy cùng Windows, mở luôn sau khi cài), `ghiChu`. Mặc định cài EVKey, UltraViewer, Chrome; các ứng dụng
+Startup để chạy cùng Windows, mở luôn sau khi cài), `github` (cùng `loiTat`: `chủ/kho/nhãn/tệp` của bản phát hành
+GitHub; winget không cài được thì tải tệp đó, chỉ cài khi SHA256 khớp mã băm GitHub ghi, giải nén vào
+`%LOCALAPPDATA%\Programs\<khoa>`. EVKey cần khoá này: tác giả thay `EVKey.zip` trong bản phát hành cũ nên winget báo sai
+mã băm), `ghiChu`. Mặc định cài EVKey, UltraViewer, Chrome; các ứng dụng
 khác (Zalo, UniKey, 7-Zip, Foxit, Visual C++...) có sẵn trong danh sách, đổi `macDinh` thành `true` để cài.
 
 ## `Office.xml`

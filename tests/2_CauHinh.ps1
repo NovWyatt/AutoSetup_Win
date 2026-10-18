@@ -79,6 +79,7 @@ Assert-Equal $apps.Count @($apps.khoa | Sort-Object -Unique).Count 'khoa không 
 Assert-Equal $apps.Count @($apps.id | Sort-Object -Unique).Count 'id không trùng'
 Assert-True (-not @($apps | Where-Object { -not $_.ten -or $_.macDinh -isnot [bool] -or $_.khoa -notmatch '^[A-Za-z0-9]+$' }).Count) 'mỗi ứng dụng có ten, macDinh true/false, khoa chữ số'
 Assert-True (-not @($apps | Where-Object { ($_.loiTat -and $_.loiTat -notmatch '^[^\\/:*?"<>|]+\.exe$') -or ($_.tuChay -and -not $_.loiTat) }).Count) 'loiTat là tên file .exe; tuChay đi cùng loiTat'
+Assert-True (-not @($apps | Where-Object { $_.github -and ($_.github -notmatch '^[\w.-]+/[\w.-]+/[^/]+/[^/]+$' -or -not $_.loiTat) }).Count) 'github dạng chủ/kho/nhãn/tệp, đi cùng loiTat'
 foreach ($g in @($apps | Where-Object { $_.nhom } | Group-Object nhom)) {
     Assert-True (@($g.Group | Where-Object { $_.macDinh }).Count -le 1) "nhóm $($g.Name) có tối đa một ứng dụng mặc định"
 }
