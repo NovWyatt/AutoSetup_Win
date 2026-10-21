@@ -52,7 +52,11 @@ function Invoke-Ventoy {
         $pct = try { [int]([IO.File]::ReadAllText((Join-Path $dir 'cli_percent.txt')).Trim()) } catch { -1 }
         if ($pct -ge 0 -and $pct -ne $last) { Write-Progress2 $pct; $last = $pct }
         if (Test-Path -LiteralPath $done) { Start-Sleep -Milliseconds 300; break }
-        if ($p.HasExited) { Start-Sleep -Seconds 1; break }
+        if ($p.HasExited) {
+            # Đợi thêm tối đa 5 giây phòng cli_done.txt ghi chậm hơn lúc tiến trình thoát.
+            for ($i = 0; $i -lt 10 -and -not (Test-Path -LiteralPath $done); $i++) { Start-Sleep -Milliseconds 500 }
+            break
+        }
     }
     $code = if (Test-Path -LiteralPath $done) { ([IO.File]::ReadAllText($done)).Trim() } else { '' }
     if ($code -eq '0') { Write-Progress2 100; Write-Log 'Ventoy2Disk báo xong.'; return }

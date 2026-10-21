@@ -114,7 +114,8 @@ function Install-VentoyTool {
         if (-not $want) { throw "không có mã băm SHA-256 cho $($a.Ten)" }
         & $Log "Tải $($a.Ten) từ GitHub (ventoy/Ventoy)..."
         New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null
-        $tmp = Join-Path $CacheDir ('{0}.tai-{1}' -f $a.Ten, [guid]::NewGuid().ToString('N').Substring(0, 8))
+        # Tên tạm vẫn kết thúc bằng .zip: Expand-Archive từ chối file đuôi khác (lỗi gặp khi thử thật 21/10/2026).
+        $tmp = Join-Path $CacheDir ('tai-{0}-{1}' -f [guid]::NewGuid().ToString('N').Substring(0, 8), $a.Ten)
         Invoke-WebRequest -Uri $a.Url -OutFile $tmp -UseBasicParsing -TimeoutSec 600
         $got = (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($got -ne $want) { throw "tệp tải về sai mã băm (được $got, cần $want)" }

@@ -57,6 +57,40 @@ try {
     Assert-True ((Find-CachedVentoy $cache) -like '*ventoy-1.1.18\Ventoy2Disk.exe') 'bản đã tải mới nhất theo số phiên bản (1.1.18 hơn 1.1.9)'
     Assert-True ((Install-VentoyTool -CacheDir $cache -Log { }) -like '*ventoy-1.1.18\Ventoy2Disk.exe') 'không mạng: dùng bản đã tải'
 
+    # ---- tải Ventoy trọn đường (GitHub giả bằng file://): tải, kiểm SHA-256, giải nén
+    $gh = Join-Path $d 'github'
+    $pkg = Join-Path $d 'goi\ventoy-9.9.9'
+    New-Item -ItemType Directory -Path (Join-Path $pkg 'altexe'), (Join-Path $gh 'repos\ventoy\Ventoy\releases'), (Join-Path $gh 'tai') -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $pkg 'Ventoy2Disk.exe'), 'gia'); [IO.File]::WriteAllText((Join-Path $pkg 'altexe\Ventoy2Disk_X64.exe'), 'gia')
+    $zip = Join-Path $gh 'tai\ventoy-9.9.9-windows.zip'
+    Compress-Archive -Path $pkg -DestinationPath $zip
+    $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText((Join-Path $gh 'tai\sha256.txt'), "$zipHash  ventoy-9.9.9-windows.zip`n")
+    $setRelease = {
+        param($digest)
+        $json = '{{"tag_name":"v9.9.9","assets":[{{"name":"ventoy-9.9.9-windows.zip","browser_download_url":"{0}","digest":"{1}"}},{{"name":"sha256.txt","browser_download_url":"{2}","digest":""}}]}}' -f ([Uri]$zip).AbsoluteUri, $digest, ([Uri](Join-Path $gh 'tai\sha256.txt')).AbsoluteUri
+        [IO.File]::WriteAllText((Join-Path $gh 'repos\ventoy\Ventoy\releases\latest'), $json)
+    }
+    $script:VentoyApi = ([Uri]$gh).AbsoluteUri.TrimEnd('/')
+    & $setRelease "sha256:$zipHash"
+    $c1 = Join-Path $d 'cache-tai'
+    $logs = New-Object System.Collections.Generic.List[string]
+    $exe = Install-VentoyTool -CacheDir $c1 -Log { param($t) $logs.Add($t) }
+    Assert-Equal (Join-Path $c1 'ventoy-9.9.9\Ventoy2Disk.exe') $exe 'tải Ventoy: giải nén đúng chỗ (gói có thư mục ventoy-<phiên bản>)'
+    Assert-True (Test-Path (Join-Path $c1 'ventoy-9.9.9\altexe\Ventoy2Disk_X64.exe')) 'tải Ventoy: đủ thư mục con'
+    Assert-Equal 'ventoy-9.9.9' ((Get-ChildItem $c1 -Force | ForEach-Object Name) -join ',') 'tải Ventoy: không để file tạm, thư mục giải nén dở'
+    Assert-True (($logs -join ' ') -match 'mã băm SHA-256 khớp') 'tải Ventoy: báo mã băm khớp'
+    $logs.Clear(); [void](Install-VentoyTool -CacheDir $c1 -Log { param($t) $logs.Add($t) })
+    Assert-True (($logs -join ' ') -match 'đã tải từ trước') 'tải lại: dùng bản đã tải, không tải nữa'
+    & $setRelease ''
+    Assert-True ((Install-VentoyTool -CacheDir (Join-Path $d 'cache-sha') -Log { }) -like '*ventoy-9.9.9\Ventoy2Disk.exe') 'GitHub không ghi mã băm: dùng sha256.txt'
+    & $setRelease ('sha256:' + ('0' * 64))
+    $c3 = Join-Path $d 'cache-sai'
+    try { [void](Install-VentoyTool -CacheDir $c3 -Log { }); $ok = $false } catch { $ok = $_.Exception.Message -match 'sai mã băm' }
+    Assert-True $ok 'sai mã băm: không dùng gói tải về'
+    Assert-Equal '' ((Get-ChildItem $c3 -Force -ErrorAction SilentlyContinue | ForEach-Object Name) -join ',') 'sai mã băm: không giải nén, không để file tạm'
+    $script:VentoyApi = $env:AUTOSETUP_GITHUB_API
+
     # ---- ISO, cấu hình
     $usb = Join-Path $d 'usb'
     New-Item -ItemType Directory -Path (Join-Path $usb 'ISO'), (Join-Path $usb 'AutoSetup'), (Join-Path $usb 'ventoy') -Force | Out-Null
