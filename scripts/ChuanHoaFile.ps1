@@ -2,7 +2,7 @@
   Dành cho người phát triển: chuẩn hoá mã hoá và xuống dòng của file trong repo, chạy trước khi commit.
     .ps1            UTF-8 có BOM (PowerShell 5.1 chỉ đọc đúng tiếng Việt khi có BOM), CRLF
     .bat .cmd       UTF-8 không BOM (cmd.exe hỏng dòng đầu nếu có BOM), CRLF
-    .vbs .xml       UTF-8 không BOM, CRLF
+    .vbs .xml .xaml UTF-8 không BOM, CRLF
     .json .md       UTF-8 không BOM, LF
   -ChiKiemTra: chỉ liệt kê file sai, không sửa (mã thoát 1 nếu có file sai).
 #>
@@ -16,11 +16,17 @@ $rules = @{
     '.cmd' = @{ Bom = $false; Eol = "`r`n" }
     '.vbs' = @{ Bom = $false; Eol = "`r`n" }
     '.xml' = @{ Bom = $false; Eol = "`r`n" }
+    '.xaml' = @{ Bom = $false; Eol = "`r`n" }
     '.json' = @{ Bom = $false; Eol = "`n" }
     '.md' = @{ Bom = $false; Eol = "`n" }
 }
 $bad = 0
-$files = Get-ChildItem -LiteralPath $repo -Recurse -File | Where-Object { $_.FullName -notmatch '\\(\.git|out)\\' -and $rules.ContainsKey($_.Extension.ToLowerInvariant()) }
+# Chỉ file git theo dõi hoặc sẽ theo dõi (bỏ out\, tài liệu bên thứ ba bị .gitignore/.git\info\exclude chặn);
+# không có git thì quét cả cây trừ .git, out.
+$list = try { @(& git -c core.quotepath=off -C $repo ls-files --cached --others --exclude-standard 2>$null) } catch { $null }
+$files = if ($null -eq $list -or $LASTEXITCODE -ne 0) { Get-ChildItem -LiteralPath $repo -Recurse -File | Where-Object { $_.FullName -notmatch '\\(\.git|out)\\' } }
+else { $list | ForEach-Object { Get-Item -LiteralPath (Join-Path $repo $_) -ErrorAction SilentlyContinue } }
+$files = @($files | Where-Object { $rules.ContainsKey($_.Extension.ToLowerInvariant()) })
 foreach ($f in $files) {
     $r = $rules[$f.Extension.ToLowerInvariant()]
     $bytes = [IO.File]::ReadAllBytes($f.FullName)

@@ -19,6 +19,16 @@ function Assert-Equal {
     if ($ok) { Assert-True $true $Message } else { Assert-True $false "$Message (cần '$Expected', được '$Actual')" }
 }
 
+function Get-RepoFiles {
+    # File của repo theo git (đã theo dõi + mới mà .gitignore, .git\info\exclude không chặn), để bài thử bỏ qua tài liệu
+    # bên thứ ba để tạm trong repo. Không có git thì quét cả cây trừ .git, out.
+    $list = try { @(& git -c core.quotepath=off -C $script:Repo ls-files --cached --others --exclude-standard 2>$null) } catch { $null }
+    if ($null -eq $list -or $LASTEXITCODE -ne 0) {
+        return Get-ChildItem -LiteralPath $script:Repo -Recurse -File | Where-Object { $_.FullName -notmatch '\\(\.git|out)\\' }
+    }
+    $list | ForEach-Object { Get-Item -LiteralPath (Join-Path $script:Repo $_) -ErrorAction SilentlyContinue }
+}
+
 function New-TestDir {
     param([string]$Name)
     $base = Join-Path ([IO.Path]::GetTempPath()) 'AutoSetup-KiemThu'

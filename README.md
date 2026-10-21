@@ -11,7 +11,8 @@ trong Windows.
 > (Windows 11 build 26300): xoá ổ, OOBE, bước sau cài, chặn xoá khi máy có hai ổ, chế độ tự động hoàn toàn (tự tạo
 > tài khoản, khởi động lại giữa chừng rồi chạy tiếp); kết quả và các lỗi đã sửa ở
 > [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md). **Chưa thử trên máy thật**: thử một máy trước khi dùng cho máy khách.
-> Tải Office theo `cau-hinh/Office.xml` và giới hạn thời gian đọc ổ đĩa mới có bài thử giả lập, chưa chạy trên máy ảo.
+> Giao diện tạo USB (`TAO_USB_GIAO_DIEN.bat`) có bài thử tự động: nạp giao diện, lưu cấu hình, bấm Tạo USB vào USB
+> giả; **phần cài Ventoy lên USB thật chưa chạy thử** (cần USB và quyền quản trị).
 
 ## Làm được gì
 
@@ -24,6 +25,17 @@ trong Windows.
 | Lần đăng nhập đầu | Chép bước sau cài từ USB vào `C:\AutoSetup`, chạy: ổ dữ liệu về D, cài ứng dụng (winget), Office, driver (USB + Windows Update), đổi tên máy, báo cáo. Cần khởi động lại thì tự khởi động lại rồi chạy tiếp |
 
 ## Dùng nhanh
+
+**Cách dễ nhất: bấm đúp `TAO_USB_GIAO_DIEN.bat`** (tự xin quyền quản trị) rồi đi lần lượt 4 thẻ:
+
+| Thẻ | Việc |
+|---|---|
+| 1. USB | Chọn USB (chỉ liệt kê ổ USB, thẻ nhớ). USB mới: **Cài Ventoy** (xoá sạch USB, hỏi hai lần); USB đã có Ventoy: dùng luôn, **Cập nhật Ventoy** giữ nguyên dữ liệu. Ventoy tải bản mới nhất từ [GitHub ventoy/Ventoy](https://github.com/ventoy/Ventoy/releases), chỉ dùng khi mã băm SHA-256 khớp |
+| 2. ISO | Chép ISO lên USB: ISO Windows 10/11 được menu cài tự động; ISO khác (cứu hộ như Anhdv Boot, Hiren's BootCD PE, Linux) Ventoy khởi động như thường |
+| 3. Cấu hình | Key, tài khoản (tự tạo thì gõ mật khẩu ở đây, không lưu vào file), tên máy, ổ C, việc sau cài, ứng dụng, mục chọn sẵn của menu. Lưu vào `cau-hinh/CauHinh.local.json`, `UngDung.local.json` |
+| 4. Tạo USB | Chạy `TAO_USB` (bên dưới) lên USB đã chọn; có chạy thử |
+
+Hoặc làm tay:
 
 1. **Cài Ventoy lên USB** (≥ 16 GB) bằng [Ventoy2Disk](https://www.ventoy.net/en/download.html). Chép ISO Windows vào USB
    (ví dụ `\ISO\Win11_26300_x64_en-US.iso`; tên file phải có `win...10` hoặc `win...11`).
@@ -100,15 +112,17 @@ Chưa có mạng thì đợi tối đa `sauCai.choMangPhut` phút (nhắc cắm 
 ## Cấu trúc
 
 ```
+TAO_USB_GIAO_DIEN.bat           bấm đúp: giao diện tạo USB (Ventoy, ISO, cấu hình, chép AutoSetup)
 TAO_USB.bat, TAO_UNATTEND.bat   bấm đúp: chép lên USB / chỉ sinh file unattend
 cau-hinh/        CauHinh.json (cấu hình), UngDung.json (ứng dụng winget), Office.xml (Office cần cài)
 unattend/        khung.xml, KiemTraO.vbs (kiểm tra ổ trong WinPE), scripts/ (nhúng vào file unattend:
                  GiaiNen, Specialize, DefaultUser, FirstLogon)
 sau-cai/         SauCai.ps1 + lib/ (chép lên USB rồi vào C:\AutoSetup): ứng dụng, driver, ổ đĩa, báo cáo
-scripts/         TaoUnattend.ps1, TaoUSB.ps1, ChuanHoaFile.ps1 (chuẩn hoá mã hoá trước khi commit)
+scripts/         TaoUnattend.ps1, TaoUSB.ps1, ChuanHoaFile.ps1 (chuẩn hoá mã hoá trước khi commit),
+                 GiaoDienUSB.ps1 + .xaml (giao diện), ViecNenUSB.ps1 (tải/cài Ventoy, chép ISO), lib/USB.ps1
 tests/           bài thử giả lập: CHAY_KIEM_THU.bat; may-ao/ dựng ISO thử, máy ảo VirtualBox
 docs/            CAU-HINH.md, THU-MAY-AO.md, PHAN-TICH-AUTOINSTALLER.md
-out/             file unattend đã sinh (không commit: có thể có mật khẩu)
+out/             file unattend đã sinh (không commit: có thể có mật khẩu), ventoy/ (Ventoy đã tải)
 ```
 
 ## Kiểm thử
@@ -116,7 +130,9 @@ out/             file unattend đã sinh (không commit: có thể có mật kh�
 `tests\CHAY_KIEM_THU.bat` (khoảng 1 phút, không đổi máy, ghi tạm vào `%TEMP%\AutoSetup-KiemThu`). Kiểm: cú pháp và
 mã hoá mọi file; cấu hình đúng, sai; 6 file unattend đúng từng biến thể, lệnh WinPE không quá 255 ký tự, mỗi dòng tối đa
 một biến Ventoy, script nhúng giải nén ra đúng nội dung; đoạn kiểm tra ổ dựng lại từ đúng các lệnh `echo` trong file
-unattend rồi chạy với 13 tình huống ổ đĩa; bước sau cài với winget giả; chép lên USB giả (giữ cấu hình Ventoy cũ).
+unattend rồi chạy với 13 tình huống ổ đĩa; bước sau cài với winget giả; chép lên USB giả (giữ cấu hình Ventoy cũ);
+giao diện: nhận USB, chọn gói Ventoy và mã băm, từ chối cài Ventoy lên ổ trong, chép ISO, lưu cấu hình, bấm Tạo USB.
+Xem giao diện không cần bấm: `scripts\GiaoDienUSB.ps1 -AnhRa anh.png -The 2` (lưu ảnh thẻ Cấu hình).
 Sửa file xong thì chạy `scripts\ChuanHoaFile.ps1` (`.ps1` cần BOM để PowerShell 5.1 đọc đúng tiếng Việt).
 
 Thử cả lượt cài trên máy ảo VirtualBox (không cần Ventoy, không cần USB): [docs/THU-MAY-AO.md](docs/THU-MAY-AO.md).
@@ -138,7 +154,12 @@ Thử cả lượt cài trên máy ảo VirtualBox (không cần Ventoy, không 
   do làm khác: [docs/PHAN-TICH-AUTOINSTALLER.md](docs/PHAN-TICH-AUTOINSTALLER.md).
 - Cách nhúng, giải nén script trong file unattend, bảng key cài đặt chung: theo
   [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) (MIT).
-- [Ventoy auto_install](https://www.ventoy.net/en/plugin_autoinstall.html),
+- [Ventoy](https://github.com/ventoy/Ventoy) (GPLv3): giao diện tải bản phát hành chính thức lúc dùng, không kèm trong
+  repo; [auto_install](https://www.ventoy.net/en/plugin_autoinstall.html),
+  [dòng lệnh Ventoy2Disk](https://www.ventoy.net/en/doc_windows_cli.html),
   [Microsoft unattend reference](https://learn.microsoft.com/windows-hardware/customize/desktop/unattend/).
+
+- ISO cứu hộ (Anhdv Boot, Hiren's BootCD PE...) là phần mềm của tác giả khác: tự tải từ trang chính thức, repo không
+  kèm và không sửa.
 
 Giấy phép MIT, xem [LICENSE](LICENSE).

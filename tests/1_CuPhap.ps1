@@ -4,7 +4,7 @@
 #>
 . (Join-Path $PSScriptRoot 'lib\KiemThu.ps1')
 
-$files = Get-ChildItem -LiteralPath $script:Repo -Recurse -File | Where-Object { $_.FullName -notmatch '\\(\.git|out)\\' }
+$files = @(Get-RepoFiles)
 
 foreach ($f in $files | Where-Object { $_.Extension -eq '.ps1' }) {
     $rel = $f.FullName.Substring($script:Repo.Length + 1)
